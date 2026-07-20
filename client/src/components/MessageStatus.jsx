@@ -6,7 +6,7 @@ function MessageStatus({ seenBy, currentUserId }) {
   return (
     <span className="inline-flex items-center">
       {isSeen ? (
-        <IoCheckmarkDone className="w-3.5 h-3.5 text-blue-400" />
+        <IoCheckmarkDone className="w-3.5 h-3.5 text-blue-400 drop-shadow-sm" />
       ) : (
         <IoCheckmark className="w-3.5 h-3.5 text-gray-500" />
       )}

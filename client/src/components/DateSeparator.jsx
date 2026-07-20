@@ -14,9 +14,13 @@ function DateSeparator({ date }) {
   };
 
   return (
-    <div className="flex items-center justify-center my-4">
-      <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10">
-        <span className="text-[11px] text-gray-400 font-medium">{formatDateLabel(date)}</span>
+    <div className="flex items-center justify-center my-5">
+      <div className="flex items-center gap-3 w-full max-w-[300px]">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        <span className="text-[10px] text-gray-500 font-medium tracking-wider uppercase px-2">
+          {formatDateLabel(date)}
+        </span>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
       </div>
     </div>
   );

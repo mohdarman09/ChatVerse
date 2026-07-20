@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Home from './pages/home/Home.jsx'
 import Login from './pages/authentication/Login.jsx'
 import Signup from './pages/authentication/Signup.jsx'
+import Profile from './pages/profile/Profile.jsx'
 import { store } from './store/store.js'
 import { Provider } from 'react-redux'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
@@ -15,6 +16,13 @@ const router = createBrowserRouter([
     element:
     (<ProtectedRoute>
       <Home />
+    </ProtectedRoute>)
+  },
+  {
+    path: '/profile',
+    element:
+    (<ProtectedRoute>
+      <Profile />
     </ProtectedRoute>)
   },
   {

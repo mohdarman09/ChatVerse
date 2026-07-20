@@ -44,17 +44,17 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0F172A] via-[#111827] to-[#1E293B] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[var(--bg-primary)]">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative w-full max-w-md animate-fade-in">
+      <div className="relative w-full max-w-md animate-fade-in-up">
         <div className="glass-card p-8 space-y-6">
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-primary shadow-lg shadow-primary/25">
-              <RiMessage2Fill className="w-7 h-7 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary shadow-lg shadow-primary/25">
+              <RiMessage2Fill className="w-8 h-8 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold gradient-text">Welcome Back</h1>
@@ -71,7 +71,7 @@ function Login() {
                   type="text"
                   name="username"
                   value={loginData.username}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                  className="input-glass pl-10 pr-4 py-3 h-11"
                   placeholder="Enter your username"
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
@@ -87,7 +87,7 @@ function Login() {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   value={loginData.password}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                  className="input-glass pl-10 pr-12 py-3 h-11"
                   placeholder="Enter your password"
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}

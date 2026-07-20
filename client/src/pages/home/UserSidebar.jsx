@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
-import { IoSearch, IoLogOut } from "react-icons/io5";
+import { IoSearch, IoLogOut, IoSettingsOutline } from "react-icons/io5";
 import { RiMessage2Fill } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
 import User from "./User";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
@@ -13,6 +14,7 @@ function UserSidebar({ onSelectUser }) {
   const [users, setUsers] = React.useState([]);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { otherUsers, userProfile } = useSelector(state => state.userReducer);
   const { conversations, unreadCounts } = useSelector(state => state.messageReducer);
 
@@ -60,10 +62,10 @@ function UserSidebar({ onSelectUser }) {
   }, [searchValue, sortedUsers])
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#111827]/80 backdrop-blur-xl border-r border-white/5">
+    <div className="w-full h-full flex flex-col glass border-r border-white/5">
       <div className="p-4 pb-2">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl gradient-primary shadow-lg shadow-primary/20">
+          <div className="p-2 rounded-xl gradient-primary shadow-lg shadow-primary/25">
             <RiMessage2Fill className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-xl font-bold gradient-text">ChatVerse</h1>
@@ -81,15 +83,10 @@ function UserSidebar({ onSelectUser }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 sidebar-scroll"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(99,102,241,0.3) transparent'
-        }}
-      >
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-custom">
         {users?.map((userDetails) => {
           const conv = conversationMap[userDetails._id];
-          const unread = unreadCounts[userDetails._id] || conv?.unreadCount || 0;
+          const unread = unreadCounts[userDetails._id] ?? conv?.unreadCount ?? 0;
           return (
             <User
               key={userDetails._id}
@@ -102,7 +99,7 @@ function UserSidebar({ onSelectUser }) {
         })}
         {users?.length === 0 && (
           <div className="text-center text-gray-500 text-sm py-8 animate-fade-in">
-            No users found
+            No conversations found
           </div>
         )}
       </div>
@@ -111,7 +108,7 @@ function UserSidebar({ onSelectUser }) {
         <div className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-all duration-300">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30 ring-offset-2 ring-offset-[#111827]">
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30">
                 <img
                   src={userProfile?.profile?.avatar}
                   alt={userProfile?.profile?.fullName}
@@ -121,13 +118,20 @@ function UserSidebar({ onSelectUser }) {
                   }}
                 />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111827]" />
+              <div className="absolute -bottom-0.5 -right-0.5 status-dot status-dot-online" />
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-medium text-white truncate">{userProfile?.profile?.fullName}</h2>
-              <p className="text-xs text-gray-500">Online</p>
+              <p className="text-[11px] text-green-400/80">Online</p>
             </div>
           </div>
+          <button
+            onClick={() => navigate('/profile')}
+            className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-primary/10 transition-all duration-300 flex-shrink-0"
+            title="Profile Settings"
+          >
+            <IoSettingsOutline className="w-5 h-5" />
+          </button>
           <button
             onClick={handleLogout}
             className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 flex-shrink-0"

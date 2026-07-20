@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router';
 
@@ -14,7 +14,6 @@ const ProtectedRoute = ({children}) => {
     }, [isAuthenticated, screenLoading]);
 
   return (
-
     <div>
       {children}
     </div>

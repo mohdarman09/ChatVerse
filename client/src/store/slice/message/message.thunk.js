@@ -2,17 +2,28 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../../../components/utilities/axiosinstance";
 
-export const sendMessageThunk = createAsyncThunk("message/send", async ({ recieverId, message, replyTo }, { rejectWithValue }) => {
+export const sendMessageThunk = createAsyncThunk("message/send", async ({ recieverId, message, replyTo, image }, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(`/message/send/${recieverId}`, {
-      message,
-      replyTo: replyTo || undefined
-    })
+    let response;
+    if (image) {
+      const formData = new FormData();
+      formData.append('image', image);
+      if (message) formData.append('message', message);
+      if (replyTo) formData.append('replyTo', JSON.stringify(replyTo));
+      response = await axiosInstance.post(`/message/send/${recieverId}`, formData, {
+        headers: { 'Content-Type': undefined },
+      });
+    } else {
+      response = await axiosInstance.post(`/message/send/${recieverId}`, {
+        message,
+        replyTo: replyTo || undefined
+      })
+    }
     return response.data;
 
   } catch (error) {
     console.error(error?.response?.data?.message);
-    const errorOutput = error?.response?.data?.message
+    const errorOutput = error?.response?.data?.message || error?.message || "Failed to send message"
     toast.error(errorOutput)
     return rejectWithValue(errorOutput);
   }

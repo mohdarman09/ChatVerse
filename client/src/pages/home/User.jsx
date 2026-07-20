@@ -48,42 +48,39 @@ function User({ userDetails, onClick, lastMessage, unreadCount }) {
   return (
     <div
       onClick={handleUserClick}
-      className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 animate-fade-in relative
+      className={`group flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-300 animate-fade-in relative
         ${isSelected
           ? 'bg-primary/10 border border-primary/20 shadow-lg shadow-primary/5'
           : 'hover:bg-white/5 border border-transparent'
         }`}
     >
       <div className="relative flex-shrink-0">
-        <div className={`w-12 h-12 rounded-full overflow-hidden ring-2 transition-all duration-300
-          ${isSelected ? 'ring-primary' : 'ring-white/10 group-hover:ring-primary/50'}`}>
+        <div className={`w-11 h-11 rounded-full overflow-hidden ring-2 transition-all duration-300
+          ${isSelected ? 'ring-primary/60' : 'ring-white/10 group-hover:ring-primary/40'}`}>
           <img
             src={userDetails?.avatar}
             alt={userDetails?.fullName}
-            className="w-full h-full object-cover"
+            className="object-cover w-full h-full"
             onError={(e) => {
               e.target.src = `https://ui-avatars.com/api/?name=${userDetails?.fullName}&background=6366F1&color=fff`;
             }}
           />
         </div>
         {isUserOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#0F172A] animate-pulse" />
+          <div className="absolute -bottom-0.5 -right-0.5 status-dot status-dot-online" />
         )}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-white truncate">{userDetails?.fullName}</h2>
           <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
             {lastMessage?.createdAt && (
               <span className="text-[10px] text-gray-600">{formatMessageTime()}</span>
             )}
-            {(isUserOnline || lastSeenText) && !isUserOnline && (
-              <span className="text-[10px] text-gray-600">{lastSeenText}</span>
-            )}
           </div>
         </div>
         <div className="flex items-center justify-between mt-0.5">
-          <p className="text-xs text-gray-500 truncate flex-1">
+          <p className="flex-1 text-xs text-gray-500 truncate">
             {lastMessage ? (
               <span className="text-gray-500">
                 {lastMessage.message}
@@ -93,12 +90,12 @@ function User({ userDetails, onClick, lastMessage, unreadCount }) {
             )}
           </p>
           {unreadCount > 0 && (
-            <span className="ml-2 flex-shrink-0 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white px-1">
+            <span className="ml-2 flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white px-1.5 shadow-lg shadow-primary/20">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
           {isUserOnline && !unreadCount && (
-            <span className="text-[10px] text-green-500/70 flex-shrink-0 ml-2">Online</span>
+            <span className="text-[10px] text-green-500/70 flex-shrink-0 ml-2 font-medium">Online</span>
           )}
         </div>
       </div>

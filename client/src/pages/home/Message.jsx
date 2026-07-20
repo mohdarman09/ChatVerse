@@ -93,17 +93,34 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
                             : 'glass rounded-2xl rounded-bl-md text-gray-200'
                         }`}
                 >
-                    {highlightText(messageDetails?.message, searchQuery)}
-                    {messageDetails?.isEdited && (
+                    {messageDetails?.messageType === 'image' && messageDetails?.imageUrl ? (
+                        <div className="mb-1">
+                            <img
+                                src={messageDetails.imageUrl}
+                                alt="Shared image"
+                                className="max-w-full rounded-lg cursor-pointer object-cover hover:opacity-95 transition-opacity"
+                                style={{ maxHeight: '300px', width: 'auto' }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const event = new CustomEvent('openImagePreview', { detail: messageDetails.imageUrl });
+                                    window.dispatchEvent(event);
+                                }}
+                                loading="lazy"
+                            />
+                        </div>
+                    ) : (
+                        highlightText(messageDetails?.message, searchQuery)
+                    )}
+                    {messageDetails?.isEdited && messageDetails?.messageType === 'text' && (
                         <span className="text-[10px] text-white/50 ml-1.5">(edited)</span>
                     )}
                 </div>
 
                 {reactionCounts.length > 0 && (
                     <div className={`flex gap-0.5 -mt-2 ${isSender ? 'self-end' : 'self-start'}`}>
-                        <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full glass border border-white/5 text-xs">
+                        <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full glass border border-white/5 text-xs shadow-sm">
                             {reactionCounts.map((r, i) => (
-                                <span key={i} className="text-sm">{r.emoji}</span>
+                                <span key={i} className="text-base leading-none">{r.emoji}</span>
                             ))}
                         </div>
                     </div>

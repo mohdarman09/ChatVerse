@@ -24,6 +24,7 @@ function MessageContainer({ onBack }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     if (selectedUser?._id) {
@@ -83,6 +84,12 @@ function MessageContainer({ onBack }) {
   const cancelReply = useCallback(() => setReplyTo(null), []);
   const cancelEdit = useCallback(() => setEditingMessage(null), []);
 
+  useEffect(() => {
+    const handler = (e) => setPreviewImage(e.detail);
+    window.addEventListener('openImagePreview', handler);
+    return () => window.removeEventListener('openImagePreview', handler);
+  }, []);
+
   const scrollToMessage = useCallback((messageId) => {
     const el = document.getElementById(`message-${messageId}`);
     if (el) {
@@ -114,7 +121,7 @@ function MessageContainer({ onBack }) {
 
   if (!selectedUser) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
+      <div className="flex-1 flex items-center justify-center bg-[var(--bg-primary)]">
         <div className="text-center animate-fade-in px-4">
           <div className="w-20 h-20 rounded-2xl gradient-primary/10 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/5">
             <BsChatDots className="w-10 h-10 text-primary" />
@@ -127,8 +134,8 @@ function MessageContainer({ onBack }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-screen bg-[#0F172A]">
-      <div className="sticky top-0 z-10 bg-[#111827]/80 backdrop-blur-xl border-b border-white/5">
+    <div className="flex-1 flex flex-col h-screen bg-[var(--bg-primary)]">
+      <div className="sticky top-0 z-10 glass border-b border-white/5">
         <div className="flex items-center gap-3 p-3">
           <button
             onClick={onBack}
@@ -149,12 +156,12 @@ function MessageContainer({ onBack }) {
               />
             </div>
             {isUserOnline && (
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111827]" />
+              <div className="absolute -bottom-0.5 -right-0.5 status-dot status-dot-online" />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-semibold text-white truncate">{selectedUser?.fullName}</h2>
-            <p className={`text-xs ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
+            <p className={`text-[11px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
               {isUserOnline ? 'Online' : 'Offline'}
             </p>
           </div>
@@ -192,11 +199,11 @@ function MessageContainer({ onBack }) {
         ) : messages?.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center animate-fade-in">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
                 <BsChatDots className="w-8 h-8 text-gray-500" />
               </div>
-              <p className="text-gray-500 text-sm">No messages yet</p>
-              <p className="text-gray-600 text-xs mt-1">Say hello to start the conversation</p>
+              <p className="text-gray-400 text-sm font-medium">No messages yet</p>
+              <p className="text-gray-600 text-xs mt-1">Send a message to start the conversation</p>
             </div>
           </div>
         ) : filteredMessages?.length === 0 ? (
@@ -214,8 +221,8 @@ function MessageContainer({ onBack }) {
                 <div
                   key={msg._id || index}
                   id={`message-${msg._id}`}
-                  className="animate-slide-up rounded-lg transition-colors duration-500"
-                  style={{ animationDelay: `${Math.min(index * 0.015, 0.3)}s` }}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${Math.min(index * 0.012, 0.3)}s` }}
                 >
                   <Message
                     messageDetails={msg}
@@ -233,6 +240,29 @@ function MessageContainer({ onBack }) {
 
         <TypingIndicator userId={selectedUser?._id} />
       </div>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all z-10 hover:scale-105"
+            aria-label="Close preview"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       <SendMessage
         replyTo={replyTo}

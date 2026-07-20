@@ -24,11 +24,12 @@ export const loginUserThunk = createAsyncThunk("user/login", async ({ username, 
 });
 
 
-export const registerUserThunk = createAsyncThunk("user/signup", async ({ fullName, username, password, gender }, { rejectWithValue }) => {
+export const registerUserThunk = createAsyncThunk("user/signup", async ({ fullName, username, email, password, gender }, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post('/user/register', {
       fullName,
       username,
+      email,
       password,
       gender
     })
@@ -96,4 +97,55 @@ export const getOtherUsersThunk = createAsyncThunk("user/getOtherUsers", async (
   }
 
 
+});
+
+
+export const updateProfileThunk = createAsyncThunk("user/update-profile", async ({ fullName, username, avatar }, { rejectWithValue }) => {
+  try {
+    const formData = new FormData();
+    formData.append('fullName', fullName);
+    formData.append('username', username);
+    if (avatar) formData.append('avatar', avatar);
+
+    const response = await axiosInstance.patch('/user/update-profile', formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    toast.success("Profile updated successfully");
+    return response.data;
+  } catch (error) {
+    console.error(error?.response?.data?.message);
+    const errorOutput = error?.response?.data?.message || "Failed to update profile";
+    toast.error(errorOutput);
+    return rejectWithValue(errorOutput);
+  }
+});
+
+
+export const changePasswordThunk = createAsyncThunk("user/change-password", async ({ currentPassword, newPassword, confirmPassword }, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.post('/user/change-password', {
+      currentPassword,
+      newPassword,
+      confirmPassword
+    });
+    toast.success("Password changed successfully");
+    return response.data;
+  } catch (error) {
+    console.error(error?.response?.data?.message);
+    const errorOutput = error?.response?.data?.message || "Failed to change password";
+    toast.error(errorOutput);
+    return rejectWithValue(errorOutput);
+  }
+});
+
+export const deleteAccountThunk = createAsyncThunk("user/delete-account", async (_, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.delete('/user/delete-account');
+    return response.data;
+  } catch (error) {
+    console.error(error?.response?.data?.message);
+    const errorOutput = error?.response?.data?.message || "Failed to delete account";
+    toast.error(errorOutput);
+    return rejectWithValue(errorOutput);
+  }
 });

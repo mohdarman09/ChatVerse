@@ -116,8 +116,8 @@ export const messageSlice = createSlice({
       state.conversations = data;
       const unreadMap = {};
       data.forEach(c => {
-        if (c.unreadCount > 0 && c.otherUser?._id) {
-          unreadMap[c.otherUser._id] = c.unreadCount;
+        if (c.otherUser?._id) {
+          unreadMap[c.otherUser._id] = c.unreadCount ?? 0;
         }
       });
       state.unreadCounts = { ...state.unreadCounts, ...unreadMap };

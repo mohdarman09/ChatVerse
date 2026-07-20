@@ -131,7 +131,7 @@ function Home() {
   }, []);
 
   return (
-    <div className='flex h-screen bg-[#0F172A] overflow-hidden'>
+    <div className='flex h-screen bg-[var(--bg-primary)] overflow-hidden'>
       <div
         className={`${showMobileChat ? 'hidden' : 'flex'}
           lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0`}

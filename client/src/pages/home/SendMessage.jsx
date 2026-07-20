@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { IoIosSend } from "react-icons/io";
-import { BsEmojiSmile, BsReply, BsPencil, BsX } from "react-icons/bs";
-import { IoMdAttach } from "react-icons/io";
+import { BsEmojiSmile, BsReply, BsPencil, BsX, BsImage } from "react-icons/bs";
 import { useDispatch, useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
 import { sendMessageThunk } from '../../store/slice/message/message.thunk';
 
 
@@ -13,14 +13,24 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
     const { buttonLoading } = useSelector(state => state.messageReducer);
     const { socket } = useSelector(state => state.socketReducer);
     const [message, setMessage] = useState("");
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [imageUploading, setImageUploading] = useState(false);
     const typingTimeoutRef = useRef(null);
     const isTypingRef = useRef(false);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (editingMessage) {
             setMessage(editingMessage.message);
         }
     }, [editingMessage]);
+
+    useEffect(() => {
+        return () => {
+            if (imagePreview) URL.revokeObjectURL(imagePreview);
+        };
+    }, [imagePreview]);
 
     const emitTyping = useCallback(() => {
         if (!socket || !selectedUser?._id) return;
@@ -38,7 +48,7 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
             if (socket) {
                 socket.emit("stopTyping", { recieverId: selectedUser._id });
             }
-        }, 2000);
+        }, 1000);
     }, [socket, selectedUser, userProfile]);
 
     useEffect(() => {
@@ -46,12 +56,41 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
             if (socket && selectedUser?._id && isTypingRef.current) {
                 socket.emit("stopTyping", { recieverId: selectedUser._id });
+                isTypingRef.current = false;
             }
         };
     }, [socket, selectedUser]);
 
-    const handleSendMessage = () => {
-        if (!message.trim()) return;
+    const handleImageSelect = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error('Only .jpg, .jpeg, .png, and .webp files are allowed');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image must be less than 5 MB');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        setSelectedImage(file);
+        setImagePreview(URL.createObjectURL(file));
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const removeSelectedImage = () => {
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
+        setSelectedImage(null);
+        setImagePreview(null);
+    };
+
+    const handleSendMessage = async () => {
+        if (!message.trim() && !selectedImage) return;
 
         if (editingMessage) {
             if (socket) {
@@ -66,16 +105,33 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
             return;
         }
 
-        dispatch(sendMessageThunk({
-            recieverId: selectedUser?._id,
-            message: message.trim(),
-            replyTo: replyTo ? {
-                messageId: replyTo.messageId,
-                message: replyTo.message,
-                senderId: replyTo.senderId,
-                senderName: replyTo.senderName
-            } : null
-        }))
+        if (selectedImage) {
+            setImageUploading(true);
+            await dispatch(sendMessageThunk({
+                recieverId: selectedUser?._id,
+                message: message.trim(),
+                replyTo: replyTo ? {
+                    messageId: replyTo.messageId,
+                    message: replyTo.message,
+                    senderId: replyTo.senderId,
+                    senderName: replyTo.senderName
+                } : null,
+                image: selectedImage
+            }))
+            setImageUploading(false);
+            removeSelectedImage();
+        } else {
+            dispatch(sendMessageThunk({
+                recieverId: selectedUser?._id,
+                message: message.trim(),
+                replyTo: replyTo ? {
+                    messageId: replyTo.messageId,
+                    message: replyTo.message,
+                    senderId: replyTo.senderId,
+                    senderName: replyTo.senderName
+                } : null
+            }))
+        }
         setMessage("");
 
         if (isTypingRef.current) {
@@ -103,11 +159,13 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
         }
     }
 
+    const canSend = (message.trim() || selectedImage) && !buttonLoading && !imageUploading;
+
     return (
-        <div className="sticky bottom-0 bg-[#111827]/80 backdrop-blur-xl border-t border-white/5">
+        <div className="sticky bottom-0 glass border-t border-white/5">
             {(replyTo || editingMessage) && (
                 <div className="px-3 pt-2">
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
                         <div className={`p-1 rounded ${editingMessage ? 'bg-yellow-500/20 text-yellow-400' : 'bg-primary/20 text-primary'}`}>
                             {editingMessage ? <BsPencil className="w-3 h-3" /> : <BsReply className="w-3 h-3" />}
                         </div>
@@ -128,6 +186,24 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
                     </div>
                 </div>
             )}
+            {imagePreview && (
+                <div className="px-3 pt-2">
+                    <div className="relative inline-block rounded-xl overflow-hidden border border-white/10 bg-black/40 shadow-md">
+                        <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="max-h-32 w-auto object-contain"
+                        />
+                        <button
+                            onClick={removeSelectedImage}
+                            className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all"
+                            aria-label="Remove image"
+                        >
+                            <BsX className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className="p-3">
                 <div className="flex items-center gap-2 max-w-4xl mx-auto">
                     <button
@@ -137,11 +213,20 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
                         <BsEmojiSmile className="w-5 h-5" />
                     </button>
                     <button
+                        onClick={() => fileInputRef.current?.click()}
                         className="p-2 rounded-xl text-gray-500 hover:text-primary hover:bg-primary/10 transition-all duration-300 flex-shrink-0"
-                        aria-label="Attach file"
+                        aria-label="Send image"
+                        disabled={!!editingMessage}
                     >
-                        <IoMdAttach className="w-5 h-5" />
+                        <BsImage className="w-5 h-5" />
                     </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        className="hidden"
+                        onChange={handleImageSelect}
+                    />
                     <div className="flex-1 relative group">
                         <input
                             type="text"
@@ -159,10 +244,10 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit }) =
                                 : 'gradient-primary shadow-primary/25 hover:shadow-xl hover:shadow-primary/30'
                             }`}
                         onClick={handleSendMessage}
-                        disabled={!message.trim() || buttonLoading}
+                        disabled={!canSend}
                         aria-label={editingMessage ? "Save edit" : "Send message"}
                     >
-                        {buttonLoading ? (
+                        {imageUploading || buttonLoading ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : editingMessage ? (
                             <BsPencil className="w-5 h-5" />

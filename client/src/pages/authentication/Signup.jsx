@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaUser, FaEye, FaEyeSlash, FaVenusMars } from "react-icons/fa";
 import { IoKeySharp } from "react-icons/io5";
+import { RiMailLine } from "react-icons/ri";
 import { RiUserAddLine } from "react-icons/ri";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +18,7 @@ function Signup() {
   const [signupData, setSignupData] = useState({
     fullName: "",
     username: "",
+    email: "",
     password: "",
     confirmPassword: "",
     gender: "male"
@@ -34,8 +36,16 @@ function Signup() {
   };
 
   const handleSignup = async () => {
-    if (!signupData.fullName || !signupData.username || !signupData.password || !signupData.confirmPassword) {
+    const trimmedFullName = signupData.fullName.trim();
+    const trimmedUsername = signupData.username.trim();
+    const trimmedEmail = signupData.email.trim();
+
+    if (!trimmedFullName || !trimmedUsername || !trimmedEmail || !signupData.password || !signupData.confirmPassword) {
       return toast.error("Please fill in all fields");
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return toast.error("Please enter a valid email address");
     }
     if (signupData.password !== signupData.confirmPassword) {
       return toast.error("Password and Confirm Password do not match");
@@ -43,7 +53,13 @@ function Signup() {
     if (signupData.password.length < 6) {
       return toast.error("Password must be at least 6 characters");
     }
-    const response = await dispatch(registerUserThunk(signupData));
+    const response = await dispatch(registerUserThunk({
+      fullName: trimmedFullName,
+      username: trimmedUsername,
+      email: trimmedEmail,
+      password: signupData.password,
+      gender: signupData.gender,
+    }));
     if (response?.payload?.success) {
       navigate("/");
       toast.success("Account created successfully!");
@@ -55,17 +71,17 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0F172A] via-[#111827] to-[#1E293B] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[var(--bg-primary)]">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-accent/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative w-full max-w-md animate-fade-in">
+      <div className="relative w-full max-w-md animate-fade-in-up">
         <div className="glass-card p-8 space-y-6">
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-primary shadow-lg shadow-primary/25">
-              <RiUserAddLine className="w-7 h-7 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary shadow-lg shadow-primary/25">
+              <RiUserAddLine className="w-8 h-8 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold gradient-text">Create Account</h1>
@@ -84,7 +100,7 @@ function Signup() {
                   value={signupData.fullName}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                  className="input-glass pl-10 pr-4 py-3 h-11"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -100,8 +116,24 @@ function Signup() {
                   value={signupData.username}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                  className="input-glass pl-10 pr-4 py-3 h-11"
                   placeholder="Choose a username"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-gray-400 font-medium ml-1">Email</label>
+              <div className="relative group">
+                <RiMailLine className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
+                <input
+                  type="email"
+                  name="email"
+                  value={signupData.email}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  className="input-glass pl-10 pr-4 py-3 h-11"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
@@ -116,7 +148,7 @@ function Signup() {
                   value={signupData.password}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                  className="input-glass pl-10 pr-12 py-3 h-11"
                   placeholder="Create a password"
                 />
                 <button
@@ -140,7 +172,7 @@ function Signup() {
                   value={signupData.confirmPassword}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                  className="input-glass pl-10 pr-12 py-3 h-11"
                   placeholder="Confirm your password"
                 />
                 <button

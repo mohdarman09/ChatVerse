@@ -1,17 +1,47 @@
+import { v2 as cloudinary } from "cloudinary";
 import Message from "../models/message.model.js";
 import Conversation from "../models/conversation.model.js";
 import { asyncHandler } from "../utilities/asyncHandler.utilitiy.js";
 import { errorHandler } from "../utilities/errorHandler.utility.js";
 import { getSocketId, io } from "../socket/socket.js";
 
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export const sendMessage = asyncHandler(async (req, res, next) => {
 
     const senderId = req.user._id;
     const recieverId = req.params.recieverId;
-    const { message, replyTo } = req.body;
+    const { message } = req.body;
 
-    if (!senderId || !recieverId || !message) {
+    let messageText = message || '';
+    let replyTo = req.body.replyTo;
+    if (typeof replyTo === 'string') {
+        try { replyTo = JSON.parse(replyTo); } catch { replyTo = undefined; }
+    }
+
+    if (!senderId || !recieverId) {
         return next(new errorHandler("All fields are required", 400));
+    }
+
+    let imageUrl = null;
+    let messageType = 'text';
+
+    if (req.file) {
+        const b64 = Buffer.from(req.file.buffer).toString('base64');
+        const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+        const result = await cloudinary.uploader.upload(dataURI, {
+            folder: 'chatverse_images',
+        });
+        imageUrl = result.secure_url;
+        messageType = 'image';
+    }
+
+    if (messageType === 'text' && !messageText) {
+        return next(new errorHandler("Message is required", 400));
     }
 
     let conversation = await Conversation.findOne({
@@ -24,7 +54,8 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
         });
     }
 
-    const messageData = { senderId, recieverId, message };
+    const messageData = { senderId, recieverId, message: messageText, messageType };
+    if (imageUrl) messageData.imageUrl = imageUrl;
     if (replyTo) {
         messageData.replyTo = {
             messageId: replyTo.messageId,
@@ -38,8 +69,9 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
 
     if (newMessage) {
         conversation.messages.push(newMessage._id);
+        const lastMessageText = messageType === 'image' ? '[Image]' : newMessage.message.substring(0, 100);
         conversation.lastMessage = {
-            message: newMessage.message.substring(0, 100),
+            message: lastMessageText,
             senderId: newMessage.senderId,
             createdAt: newMessage.createdAt
         };
@@ -47,7 +79,9 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
     }
 
     const socketId = getSocketId(recieverId);
-    io.to(socketId).emit("newMessage", newMessage);
+    if (socketId) {
+        io.to(socketId).emit("newMessage", newMessage);
+    }
 
     res.status(200)
         .json({
@@ -61,6 +95,17 @@ export const getMessages = asyncHandler(async (req, res, next) => {
 
     const myId = req.user._id;
     const otherParticipantId = req.params.otherParticipantId;
+
+    await Message.updateMany(
+        {
+            senderId: otherParticipantId,
+            recieverId: myId,
+            "seenBy.userId": { $ne: myId }
+        },
+        {
+            $push: { seenBy: { userId: myId, seenAt: new Date() } }
+        }
+    );
 
     const conversation = await Conversation.findOne({
         participants: { $all: [myId, otherParticipantId] }
