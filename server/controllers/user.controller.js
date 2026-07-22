@@ -180,7 +180,7 @@ export const login = asyncHandler(async (req, res, next) => {
 
     const token = signToken(user._id);
     setCookie(res, token);
-
+        
     res.status(200).json({
         success: true,
         responseData: { user, token }
