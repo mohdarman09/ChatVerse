@@ -18,6 +18,13 @@ function Home() {
 
   const dispatch = useDispatch();
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     dispatch(getUserProfileThunk());
@@ -130,6 +137,19 @@ function Home() {
     }
   }, []);
 
+  // Mobile layout: dedicated full-screen screens
+  if (isMobile) {
+    if (showMobileChat) {
+      return (
+        <MessageContainer isMobile={true} onBack={() => setShowMobileChat(false)} />
+      );
+    }
+    return (
+      <UserSidebar isMobile={true} onSelectUser={() => setShowMobileChat(true)} />
+    );
+  }
+
+  // Desktop layout: exact original, untouched
   return (
     <div className='flex h-screen bg-[var(--bg-primary)] overflow-hidden'>
       <div

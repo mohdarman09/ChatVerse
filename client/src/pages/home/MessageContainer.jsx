@@ -10,7 +10,7 @@ import MessageSearch from '../../components/MessageSearch';
 import { IoArrowBack, IoSearch } from 'react-icons/io5';
 import { BsChatDots } from 'react-icons/bs';
 
-function MessageContainer({ onBack }) {
+function MessageContainer({ onBack, isMobile }) {
 
   const dispatch = useDispatch();
   const { selectedUser, userProfile } = useSelector(state => state.userReducer);
@@ -133,6 +133,156 @@ function MessageContainer({ onBack }) {
     )
   }
 
+  // Mobile layout: dedicated full-screen chat
+  if (isMobile) {
+    return (
+      <div className="w-full h-screen flex flex-col bg-[var(--bg-primary)]">
+        <div className="sticky top-0 z-10 bg-[var(--bg-secondary)] border-b border-white/[0.06]">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <button
+              onClick={onBack}
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              aria-label="Back to conversations"
+            >
+              <IoArrowBack className="w-6 h-6" />
+            </button>
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30">
+                <img
+                  src={selectedUser?.avatar}
+                  alt={selectedUser?.fullName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${selectedUser?.fullName}&background=6366F1&color=fff`;
+                  }}
+                />
+              </div>
+              {isUserOnline && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[15px] font-semibold text-white truncate">{selectedUser?.fullName}</h2>
+              <p className={`text-[12px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
+                {isUserOnline ? 'Online' : 'Offline'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${showSearch ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+              aria-label="Search messages"
+            >
+              <IoSearch className="w-5 h-5" />
+            </button>
+          </div>
+          {showSearch && (
+            <MessageSearch searchQuery={searchQuery} setSearchQuery={setSearchQuery} messageCount={filteredMessages.length} />
+          )}
+        </div>
+
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto"
+        >
+          {buttonLoading && messages?.length === 0 ? (
+            <div className="space-y-4 p-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} gap-3 animate-fade-in`}>
+                  {i % 2 !== 0 && <div className="w-8 h-8 rounded-full skeleton flex-shrink-0" />}
+                  <div className={`space-y-2 ${i % 2 === 0 ? 'items-end' : 'items-start'}`}>
+                    <div className={`h-10 skeleton rounded-2xl ${i % 2 === 0 ? 'w-48' : 'w-36'}`} />
+                    <div className="h-3 w-16 skeleton rounded" />
+                  </div>
+                  {i % 2 === 0 && <div className="w-8 h-8 rounded-full skeleton flex-shrink-0" />}
+                </div>
+              ))}
+            </div>
+          ) : messages?.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
+                  <BsChatDots className="w-8 h-8 text-gray-500" />
+                </div>
+                <p className="text-gray-400 text-sm font-medium">No messages yet</p>
+                <p className="text-gray-600 text-xs mt-1">Send a message to start the conversation</p>
+              </div>
+            </div>
+          ) : filteredMessages?.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500 text-sm">No messages match your search</p>
+            </div>
+          ) : (
+            <div className="px-3 py-3">
+              {groupedMessages.map((item, index) => {
+                if (item.type === 'date') {
+                  return <DateSeparator key={`date-${index}`} date={item.date} />;
+                }
+                const msg = item.message;
+                return (
+                  <div
+                    key={msg._id || index}
+                    id={`message-${msg._id}`}
+                    className="animate-fade-in-up"
+                    style={{ animationDelay: `${Math.min(index * 0.012, 0.3)}s` }}
+                  >
+                    <Message
+                      isMobile={true}
+                      messageDetails={msg}
+                      onReply={handleReply}
+                      onStartEdit={handleStartEdit}
+                      onScrollToMessage={scrollToMessage}
+                      searchQuery={searchQuery}
+                    />
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+
+          <div className="px-3">
+            <TypingIndicator userId={selectedUser?._id} />
+          </div>
+        </div>
+
+        {previewImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 animate-fade-in"
+            onClick={() => setPreviewImage(null)}
+          >
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-2 right-2 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all z-10 hover:scale-105"
+              aria-label="Close preview"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
+        <div className="sticky bottom-0 bg-[var(--bg-secondary)] border-t border-white/[0.06] safe-bottom-mobile">
+          <SendMessage
+            isMobile={true}
+            replyTo={replyTo}
+            onCancelReply={cancelReply}
+            editingMessage={editingMessage}
+            onCancelEdit={cancelEdit}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout: exact original, untouched
   return (
     <div className="flex-1 flex flex-col h-screen bg-[var(--bg-primary)]">
       <div className="sticky top-0 z-10 glass border-b border-white/5">

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { FaUser, FaEye, FaEyeSlash, FaVenusMars } from "react-icons/fa";
+import React, { useEffect, useState, useRef } from "react";
+import { FaUser, FaEye, FaEyeSlash, FaVenusMars, FaCamera } from "react-icons/fa";
 import { IoKeySharp } from "react-icons/io5";
 import { RiMailLine } from "react-icons/ri";
 import { RiUserAddLine } from "react-icons/ri";
@@ -11,9 +11,12 @@ import toast from "react-hot-toast";
 function Signup() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const fileInputRef = useRef(null);
   const { isAuthenticated, buttonLoading } = useSelector((state) => state.userReducer);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
 
   const [signupData, setSignupData] = useState({
     fullName: "",
@@ -28,11 +31,54 @@ function Signup() {
     if (isAuthenticated) navigate("/");
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && avatarPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
   const handleInputChange = (e) => {
     setSignupData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only .jpg, .jpeg, .png, and .webp files are allowed');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5 MB');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (avatarPreview && avatarPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setSelectedAvatar(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const getInitials = (name) => {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
   };
 
   const handleSignup = async () => {
@@ -47,22 +93,41 @@ function Signup() {
     if (!emailRegex.test(trimmedEmail)) {
       return toast.error("Please enter a valid email address");
     }
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(trimmedUsername)) {
+      return toast.error("Username must be 3-20 characters with only letters, numbers and underscore");
+    }
     if (signupData.password !== signupData.confirmPassword) {
       return toast.error("Password and Confirm Password do not match");
     }
-    if (signupData.password.length < 6) {
-      return toast.error("Password must be at least 6 characters");
+    if (signupData.password.length < 8) {
+      return toast.error("Password must be at least 8 characters");
     }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(signupData.password)) {
+      return toast.error("Password must include uppercase, lowercase, number and special character");
+    }
+
+    let avatarBase64 = null;
+    if (selectedAvatar) {
+      const reader = new FileReader();
+      avatarBase64 = await new Promise((resolve) => {
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(selectedAvatar);
+      });
+    }
+
     const response = await dispatch(registerUserThunk({
       fullName: trimmedFullName,
       username: trimmedUsername,
       email: trimmedEmail,
       password: signupData.password,
       gender: signupData.gender,
+      avatar: avatarBase64,
     }));
     if (response?.payload?.success) {
-      navigate("/");
-      toast.success("Account created successfully!");
+      toast.success("OTP sent to your email!");
+      navigate("/verify-email", { state: { email: trimmedEmail } });
     }
   };
 
@@ -90,6 +155,33 @@ function Signup() {
           </div>
 
           <div className="space-y-4">
+            <div className="flex justify-center">
+              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-primary/40 ring-offset-2 ring-offset-[var(--bg-primary)]">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white/80">
+                        {getInitials(signupData.fullName || 'User')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-1 -right-1 p-1.5 bg-primary rounded-full shadow-lg">
+                  <FaCamera className="w-3 h-3 text-white" />
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarSelect}
+                />
+              </div>
+            </div>
+            <p className="text-center text-xs text-gray-500 -mt-2">Profile picture (optional)</p>
+
             <div className="space-y-1.5">
               <label className="text-sm text-gray-400 font-medium ml-1">Full Name</label>
               <div className="relative group">

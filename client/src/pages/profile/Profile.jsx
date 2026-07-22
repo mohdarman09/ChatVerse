@@ -74,20 +74,26 @@ function Profile() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [avatarPreview])
 
+  const [avatarRemoved, setAvatarRemoved] = useState(false)
+
   const removeAvatar = useCallback(() => {
     if (avatarPreview && avatarPreview.startsWith('blob:')) {
       URL.revokeObjectURL(avatarPreview)
     }
     setSelectedAvatar(null)
     setAvatarPreview(null)
+    setAvatarRemoved(true)
   }, [avatarPreview])
 
-  const currentAvatar = avatarPreview || userProfile?.profile?.avatar
+  const currentAvatar = !avatarRemoved && (avatarPreview || userProfile?.profile?.avatar)
 
   const getInitialsAvatar = () => {
     const name = userProfile?.profile?.fullName || 'User'
-    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    return initials
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+    return parts[0].slice(0, 2).toUpperCase()
   }
 
   const formatDate = (dateString) => {
@@ -113,7 +119,8 @@ function Profile() {
     const response = await dispatch(updateProfileThunk({
       fullName: trimmedName,
       username: trimmedUsername,
-      avatar: selectedAvatar || undefined
+      avatar: selectedAvatar || undefined,
+      removeAvatar: avatarRemoved
     }))
 
     if (response?.payload?.success) {
@@ -122,6 +129,7 @@ function Profile() {
       }
       setSelectedAvatar(null)
       setAvatarPreview(null)
+      setAvatarRemoved(false)
     }
   }
 
@@ -252,6 +260,7 @@ function Profile() {
                     onClick={removeAvatar}
                     className="p-2 text-white transition-all duration-300 bg-red-500 rounded-full shadow-lg hover:bg-red-500/80 hover:scale-110 active:scale-95"
                     aria-label="Remove photo"
+                    title="Remove photo"
                   >
                     <IoTrashOutline className="w-4 h-4" />
                   </button>

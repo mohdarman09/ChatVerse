@@ -1,8 +1,9 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedUser } from "../../store/slice/user/user.slice";
+import Avatar from "../../components/Avatar";
 
-function User({ userDetails, onClick, lastMessage, unreadCount }) {
+function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
 
   const dispatch = useDispatch();
   const { selectedUser } = useSelector(state => state.userReducer);
@@ -45,6 +46,59 @@ function User({ userDetails, onClick, lastMessage, unreadCount }) {
 
   const lastSeenText = formatLastSeen();
 
+  // Mobile layout: dedicated user row with touch-friendly sizing
+  if (isMobile) {
+    return (
+      <div
+        onClick={handleUserClick}
+        className={`flex items-center gap-3 px-4 py-4 cursor-pointer transition-all duration-200
+          ${isSelected ? 'bg-primary/[0.08]' : 'hover:bg-white/[0.03]'}
+        `}
+      >
+        <div className="relative flex-shrink-0">
+          <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/10">
+            <Avatar
+              src={userDetails?.avatar}
+              name={userDetails?.fullName}
+              seed={userDetails?.username}
+              className="w-full h-full"
+            />
+          </div>
+          {isUserOnline && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--bg-primary)]" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[15px] font-medium text-white truncate">{userDetails?.fullName}</h2>
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+              {lastMessage?.createdAt && (
+                <span className="text-[11px] text-gray-500">{formatMessageTime()}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <p className="flex-1 text-sm text-gray-500 truncate pr-2">
+              {lastMessage ? (
+                <span className="text-gray-500">
+                  {lastMessage.messageType === 'image' ? '📷 Image' : lastMessage.message}
+                </span>
+              ) : (
+                <span className="text-gray-600">@{userDetails?.username}</span>
+              )}
+            </p>
+            {unreadCount > 0 && (
+              <span className="min-w-[22px] h-[22px] flex items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white px-1.5 shadow-lg shadow-primary/20">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout: exact original, untouched
   return (
     <div
       onClick={handleUserClick}
@@ -57,13 +111,11 @@ function User({ userDetails, onClick, lastMessage, unreadCount }) {
       <div className="relative flex-shrink-0">
         <div className={`w-11 h-11 rounded-full overflow-hidden ring-2 transition-all duration-300
           ${isSelected ? 'ring-primary/60' : 'ring-white/10 group-hover:ring-primary/40'}`}>
-          <img
+          <Avatar
             src={userDetails?.avatar}
-            alt={userDetails?.fullName}
-            className="object-cover w-full h-full"
-            onError={(e) => {
-              e.target.src = `https://ui-avatars.com/api/?name=${userDetails?.fullName}&background=6366F1&color=fff`;
-            }}
+            name={userDetails?.fullName}
+            seed={userDetails?.username}
+            className="w-full h-full"
           />
         </div>
         {isUserOnline && (

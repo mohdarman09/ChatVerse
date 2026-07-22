@@ -13,7 +13,7 @@ function Login() {
   const { isAuthenticated, buttonLoading } = useSelector((state) => state.userReducer);
   const [showPassword, setShowPassword] = useState(false);
   const [loginData, setLoginData] = useState({
-    username: "",
+    usernameOrEmail: "",
     password: "",
   });
 
@@ -29,7 +29,7 @@ function Login() {
   };
 
   const handleLogin = async () => {
-    if (!loginData.username || !loginData.password) {
+    if (!loginData.usernameOrEmail || !loginData.password) {
       return toast.error("Please fill in all fields");
     }
     const response = await dispatch(loginUserThunk(loginData));
@@ -64,15 +64,15 @@ function Login() {
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Username</label>
+              <label className="text-sm text-gray-400 font-medium ml-1">Email or Username</label>
               <div className="relative group">
                 <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
                 <input
                   type="text"
-                  name="username"
-                  value={loginData.username}
+                  name="usernameOrEmail"
+                  value={loginData.usernameOrEmail}
                   className="input-glass pl-10 pr-4 py-3 h-11"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email or username"
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                 />
@@ -101,6 +101,12 @@ function Login() {
                   {showPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-primary transition-colors">
+                Forgot password?
+              </Link>
             </div>
 
             <button

@@ -331,3 +331,15 @@ body {
   border-bottom: 8px solid transparent;
   border-right: 8px solid rgba(255, 255, 255, 0.04);
 }
+
+/* Safe area inset for mobile bottom elements */
+.safe-bottom-mobile {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
+/* Word break for message text on all devices */
+.break-word {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import MessageStatus from '../../components/MessageStatus';
 import MessageActions from '../../components/MessageActions';
 
-function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, searchQuery }) {
+function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, searchQuery, isMobile }) {
 
     const { userProfile, selectedUser } = useSelector(state => state.userReducer);
     const isSender = String(userProfile?.profile?._id) === String(messageDetails?.senderId);
@@ -44,6 +44,10 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
         return acc;
     }, []) || [];
 
+    const bubbleClasses = isMobile
+        ? 'px-3 py-2.5 text-[15px] leading-relaxed shadow-md relative break-word'
+        : 'px-4 py-2.5 text-sm leading-relaxed shadow-lg relative';
+
     if ((isSender && isDeletedForSender) || isDeletedForEveryone) {
         return (
             <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-2 gap-2 opacity-40`}>
@@ -56,6 +60,100 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
         );
     }
 
+    // Mobile layout
+    if (isMobile) {
+        return (
+            <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-3 gap-2 relative`}>
+                {!isSender && (
+                    <div className="flex-shrink-0 self-end">
+                        <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+                            <img src={senderAvatar} alt="" className="w-full h-full object-cover"
+                                onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${senderName}&background=6366F1&color=fff`; }} />
+                        </div>
+                    </div>
+                )}
+
+                <div className={`max-w-[75%] ${isSender ? 'items-end' : 'items-start'} flex flex-col relative`}>
+                    {messageDetails?.replyTo && (
+                        <div className={`mb-1 max-w-[90%] cursor-pointer ${isSender ? 'self-end' : 'self-start'}`}
+                            onClick={() => onScrollToMessage && onScrollToMessage(messageDetails.replyTo.messageId)}
+                        >
+                            <div className={`px-3 py-1.5 rounded-lg text-[12px] border-l-2 ${isSender ? 'border-white/30 bg-white/5' : 'border-primary/30 bg-white/5'}`}>
+                                <p className="font-medium text-primary/80 truncate">{messageDetails.replyTo.senderName}</p>
+                                <p className="text-gray-400 truncate">{messageDetails.replyTo.message}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={`${bubbleClasses}
+                        ${isSender
+                            ? 'gradient-primary text-white rounded-2xl rounded-br-md shadow-primary/20'
+                            : 'glass rounded-2xl rounded-bl-md text-gray-200'
+                        }`}
+                    >
+                        {messageDetails?.messageType === 'image' && messageDetails?.imageUrl ? (
+                            <div className="mb-1">
+                                <img
+                                    src={messageDetails.imageUrl}
+                                    alt="Shared image"
+                                    className="max-w-full rounded-lg cursor-pointer object-contain hover:opacity-95 transition-opacity w-full"
+                                    style={{ maxHeight: '250px' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const event = new CustomEvent('openImagePreview', { detail: messageDetails.imageUrl });
+                                        window.dispatchEvent(event);
+                                    }}
+                                    loading="lazy"
+                                />
+                            </div>
+                        ) : (
+                            <span className="break-word">{highlightText(messageDetails?.message, searchQuery)}</span>
+                        )}
+                        {messageDetails?.isEdited && messageDetails?.messageType === 'text' && (
+                            <span className="text-[10px] text-white/50 ml-1.5">(edited)</span>
+                        )}
+                    </div>
+
+                    {reactionCounts.length > 0 && (
+                        <div className={`flex gap-0.5 -mt-2 ${isSender ? 'self-end' : 'self-start'}`}>
+                            <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full glass border border-white/5 text-xs shadow-sm">
+                                {reactionCounts.map((r, i) => (
+                                    <span key={i} className="text-base leading-none">{r.emoji}</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={`flex items-center gap-1.5 mt-1 px-1 ${isSender ? 'self-end' : 'self-start'}`}>
+                        <span className="text-[11px] text-gray-600">{formatTime(messageDetails?.createdAt)}</span>
+                        {isSender && (
+                            <MessageStatus seenBy={messageDetails?.seenBy} currentUserId={userProfile?.profile?._id} />
+                        )}
+                    </div>
+                </div>
+
+                {isSender && (
+                    <div className="flex-shrink-0 self-end">
+                        <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+                            <img src={senderAvatar} alt="" className="w-full h-full object-cover"
+                                onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${senderName}&background=6366F1&color=fff`; }} />
+                        </div>
+                    </div>
+                )}
+
+                <div className={`absolute ${isSender ? 'right-0' : 'left-0'} -top-2 z-20`}>
+                    <MessageActions
+                        message={messageDetails}
+                        isSender={isSender}
+                        onReply={onReply}
+                        onStartEdit={onStartEdit}
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    // Desktop layout: exact original, untouched
     return (
         <div className={`group flex ${isSender ? 'justify-end' : 'justify-start'} mb-2 gap-2 relative`}>
             {!isSender && (

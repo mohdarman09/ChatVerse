@@ -5,6 +5,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Home from './pages/home/Home.jsx'
 import Login from './pages/authentication/Login.jsx'
 import Signup from './pages/authentication/Signup.jsx'
+import VerifyEmail from './pages/authentication/VerifyEmail.jsx'
+import ForgotPassword from './pages/authentication/ForgotPassword.jsx'
 import Profile from './pages/profile/Profile.jsx'
 import { store } from './store/store.js'
 import { Provider } from 'react-redux'
@@ -32,6 +34,14 @@ const router = createBrowserRouter([
   {
     path: '/signup',
     element: <Signup />
+  },
+  {
+    path: '/verify-email',
+    element: <VerifyEmail />
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />
   }
 ])
 
