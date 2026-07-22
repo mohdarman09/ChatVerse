@@ -33,6 +33,9 @@ export const register = asyncHandler(async (req, res, next) => {
         return next(new errorHandler("All fields are required", 400));
     }
 
+    console.log("Register API Hit");
+    console.log(req.body);
+
     const trimmedFullName = fullName.trim();
     const trimmedUsername = username.trim();
     const trimmedEmail = email.trim().toLowerCase();
@@ -85,6 +88,7 @@ export const register = asyncHandler(async (req, res, next) => {
             email: trimmedEmail,
         }
     });
+    
 });
 
 export const verifyOTP = asyncHandler(async (req, res, next) => {
@@ -180,7 +184,7 @@ export const login = asyncHandler(async (req, res, next) => {
 
     const token = signToken(user._id);
     setCookie(res, token);
-        
+
     res.status(200).json({
         success: true,
         responseData: { user, token }

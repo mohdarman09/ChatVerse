@@ -3,46 +3,48 @@ import nodemailer from 'nodemailer';
 let transporter = null;
 
 const initializeTransporter = () => {
-    const { GMAIL_USER, GMAIL_PASS } = process.env;
+  const { GMAIL_USER, GMAIL_PASS } = process.env;
+  console.log("GMAIL_USER:", process.env.GMAIL_USER);
+  console.log("GMAIL_PASS Exists:", !!process.env.GMAIL_PASS);
 
-    if (!GMAIL_USER || !GMAIL_PASS) {
-        console.error('❌ Gmail credentials not configured. Set GMAIL_USER and GMAIL_PASS in .env');
-        console.error('   For Gmail App Password: https://myaccount.google.com/apppasswords');
-        throw new Error('Email service not configured. Set GMAIL_USER and GMAIL_PASS in .env');
-    }
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    console.error('❌ Gmail credentials not configured. Set GMAIL_USER and GMAIL_PASS in .env');
+    console.error('   For Gmail App Password: https://myaccount.google.com/apppasswords');
+    throw new Error('Email service not configured. Set GMAIL_USER and GMAIL_PASS in .env');
+  }
 
-    transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: GMAIL_USER,
-            pass: GMAIL_PASS,
-        },
-    });
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_PASS,
+    },
+  });
 };
 
 const getTransporter = () => {
-    if (!transporter) {
-        initializeTransporter();
-    }
-    return transporter;
+  if (!transporter) {
+    initializeTransporter();
+  }
+  return transporter;
 };
 
 export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
-    const t = getTransporter();
+  const t = getTransporter();
 
-    const subject = purpose === 'verification'
-        ? 'Verify your ChatVerse email'
-        : 'Reset your ChatVerse password';
+  const subject = purpose === 'verification'
+    ? 'Verify your ChatVerse email'
+    : 'Reset your ChatVerse password';
 
-    const message = purpose === 'verification'
-        ? `Your email verification OTP is: <b>${otp}</b>. It expires in 10 minutes.`
-        : `Your password reset OTP is: <b>${otp}</b>. It expires in 10 minutes.`;
+  const message = purpose === 'verification'
+    ? `Your email verification OTP is: <b>${otp}</b>. It expires in 10 minutes.`
+    : `Your password reset OTP is: <b>${otp}</b>. It expires in 10 minutes.`;
 
-    const info = await t.sendMail({
-        from: `"ChatVerse Team" <${process.env.GMAIL_USER}>`,
-        to: email,
-        subject: "🔐 Verify Your ChatVerse Account",
-        html: `
+  const info = await t.sendMail({
+    from: `"ChatVerse Team" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: "🔐 Verify Your ChatVerse Account",
+    html: `
     <div style="font-family: Arial, sans-serif; background:#f4f4f4; padding:40px;">
       <table style="max-width:600px; margin:auto; background:#ffffff; border-radius:12px; overflow:hidden;">
         
@@ -109,7 +111,9 @@ export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
       </table>
     </div>
   `
-    });
+  });
+console.log("Email sent:", info.messageId);
 
-    return true;
+
+  return true;
 };
