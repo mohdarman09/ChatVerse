@@ -14,11 +14,17 @@ const initializeTransporter = () => {
   }
 
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: GMAIL_USER,
       pass: GMAIL_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 };
 
@@ -32,18 +38,12 @@ const getTransporter = () => {
 export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
   const t = getTransporter();
 
-  const subject = purpose === 'verification'
-    ? 'Verify your ChatVerse email'
-    : 'Reset your ChatVerse password';
-
-  const message = purpose === 'verification'
-    ? `Your email verification OTP is: <b>${otp}</b>. It expires in 10 minutes.`
-    : `Your password reset OTP is: <b>${otp}</b>. It expires in 10 minutes.`;
+  const isVerify = purpose === 'verification';
 
   const info = await t.sendMail({
     from: `"ChatVerse Team" <${process.env.GMAIL_USER}>`,
     to: email,
-    subject: "🔐 Verify Your ChatVerse Account",
+    subject: isVerify ? 'Verify your ChatVerse email' : 'Reset your ChatVerse password',
     html: `
     <div style="font-family: Arial, sans-serif; background:#f4f4f4; padding:40px;">
       <table style="max-width:600px; margin:auto; background:#ffffff; border-radius:12px; overflow:hidden;">
@@ -57,14 +57,15 @@ export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
         <tr>
           <td style="padding:32px;">
             <h2 style="margin-top:0; color:#333;">
-              Verify Your Email
+              ${isVerify ? 'Verify Your Email' : 'Reset Your Password'}
             </h2>
 
             <p style="color:#555; line-height:1.7;">
               Hi,
               <br><br>
-              Thank you for creating your ChatVerse account.
-              Please use the verification code below to complete your registration.
+              ${isVerify
+                ? 'Thank you for creating your ChatVerse account. Please use the verification code below to complete your registration.'
+                : 'We received a request to reset your ChatVerse password. Use the code below to proceed.'}
             </p>
 
             <div style="text-align:center; margin:30px 0;">
