@@ -112,8 +112,6 @@ export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
     </div>
   `
   });
-console.log("Email sent:", info.messageId);
-
 
   return true;
 };
