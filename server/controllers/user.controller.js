@@ -27,11 +27,15 @@ const setCookie = (res, token) => {
 };
 
 export const register = asyncHandler(async (req, res, next) => {
+    console.log('[REGISTER] request received');
+
     const { fullName, username, email, password, gender, avatar } = req.body;
 
     if (!fullName?.trim() || !username?.trim() || !email?.trim() || !password) {
         return next(new errorHandler("All fields are required", 400));
     }
+
+    console.log('[REGISTER] validation passed');
 
     const trimmedFullName = fullName.trim();
     const trimmedUsername = username.trim();
@@ -63,7 +67,10 @@ export const register = asyncHandler(async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('[REGISTER] password hashed');
+
     const otp = generateOTP();
+    console.log('[REGISTER] OTP generated');
 
     await PendingUser.create({
         fullName: trimmedFullName,
@@ -75,6 +82,7 @@ export const register = asyncHandler(async (req, res, next) => {
         otp,
         otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
     });
+    console.log('[REGISTER] database operation completed (PendingUser created)');
 
     await sendOTPEmail(trimmedEmail, otp, 'verification');
 

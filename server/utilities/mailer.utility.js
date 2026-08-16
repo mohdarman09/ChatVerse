@@ -1,47 +1,36 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-let transporter = null;
+let resendClient = null;
 
-const initializeTransporter = () => {
-  const { GMAIL_USER, GMAIL_PASS } = process.env;
-  console.log("GMAIL_USER:", process.env.GMAIL_USER);
-  console.log("GMAIL_PASS Exists:", !!process.env.GMAIL_PASS);
+const getResendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
 
-  if (!GMAIL_USER || !GMAIL_PASS) {
-    console.error('❌ Gmail credentials not configured. Set GMAIL_USER and GMAIL_PASS in .env');
-    console.error('   For Gmail App Password: https://myaccount.google.com/apppasswords');
-    throw new Error('Email service not configured. Set GMAIL_USER and GMAIL_PASS in .env');
+  if (!apiKey) {
+    console.error('[MAIL] RESEND_API_KEY is not configured');
+    console.error('   Create a key at: https://resend.com/api-keys');
+    throw new Error('Email service not configured. Set RESEND_API_KEY in .env / Railway variables.');
   }
 
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: {
-      user: GMAIL_USER,
-      pass: GMAIL_PASS,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
+  if (!resendClient) {
+    resendClient = new Resend(apiKey);
+    console.log('[MAIL] transporter configuration: provider=resend (HTTP API), no credentials logged');
+  }
+
+  return resendClient;
 };
 
-const getTransporter = () => {
-  if (!transporter) {
-    initializeTransporter();
-  }
-  return transporter;
-};
+const getFromAddress = () =>
+  process.env.RESEND_FROM_EMAIL || 'ChatVerse Team <onboarding@resend.dev>';
 
 export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
-  const t = getTransporter();
+  const client = getResendClient();
 
   const isVerify = purpose === 'verification';
 
-  const info = await t.sendMail({
-    from: `"ChatVerse Team" <${process.env.GMAIL_USER}>`,
+  console.log('[MAIL] attempting to send OTP email via resend', { to: email, purpose });
+
+  const { data, error } = await client.emails.send({
+    from: getFromAddress(),
     to: email,
     subject: isVerify ? 'Verify your ChatVerse email' : 'Reset your ChatVerse password',
     html: `
@@ -114,5 +103,15 @@ export const sendOTPEmail = async (email, otp, purpose = 'verification') => {
   `
   });
 
+  if (error) {
+    console.error('[MAIL] send failed');
+    console.error('   error.message:', error.message);
+    console.error('   error.name:', error.name);
+    const err = new Error(error.message || 'Failed to send OTP email');
+    err.code = error.name;
+    throw err;
+  }
+
+  console.log('[MAIL] send success', { id: data?.id });
   return true;
 };
