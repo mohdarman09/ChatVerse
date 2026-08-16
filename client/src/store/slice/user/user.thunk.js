@@ -10,7 +10,6 @@ export const loginUserThunk = createAsyncThunk("user/login", async ({ usernameOr
     })
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message
     toast.error(errorOutput)
     return rejectWithValue(errorOutput);
@@ -29,53 +28,8 @@ export const registerUserThunk = createAsyncThunk("user/signup", async ({ fullNa
     })
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message
     toast.error(errorOutput)
-    return rejectWithValue(errorOutput);
-  }
-});
-
-export const verifyOTPThunk = createAsyncThunk("user/verify-otp", async ({ email, otp }, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.post('/user/verify-otp', { email, otp });
-    return response.data;
-  } catch (error) {
-    const errorOutput = error?.response?.data?.message || "OTP verification failed";
-    toast.error(errorOutput);
-    return rejectWithValue(errorOutput);
-  }
-});
-
-export const resendOTPThunk = createAsyncThunk("user/resend-otp", async ({ email }, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.post('/user/resend-otp', { email });
-    return response.data;
-  } catch (error) {
-    const errorOutput = error?.response?.data?.message || "Failed to resend OTP";
-    toast.error(errorOutput);
-    return rejectWithValue(errorOutput);
-  }
-});
-
-export const forgotPasswordThunk = createAsyncThunk("user/forgot-password", async ({ email }, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.post('/user/forgot-password', { email });
-    return response.data;
-  } catch (error) {
-    const errorOutput = error?.response?.data?.message || "Failed to send OTP";
-    toast.error(errorOutput);
-    return rejectWithValue(errorOutput);
-  }
-});
-
-export const resetPasswordThunk = createAsyncThunk("user/reset-password", async ({ email, otp, newPassword, confirmPassword }, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.post('/user/reset-password', { email, otp, newPassword, confirmPassword });
-    return response.data;
-  } catch (error) {
-    const errorOutput = error?.response?.data?.message || "Failed to reset password";
-    toast.error(errorOutput);
     return rejectWithValue(errorOutput);
   }
 });
@@ -85,7 +39,6 @@ export const logoutUserThunk = createAsyncThunk("user/logout", async (_,{ reject
     const response = await axiosInstance.post('/user/logout')
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message
     toast.error(errorOutput)
     return rejectWithValue(errorOutput);
@@ -97,20 +50,17 @@ export const getUserProfileThunk = createAsyncThunk("user/get-profile", async (_
     const response = await axiosInstance.get('/user/get-profile')
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message
     return rejectWithValue(errorOutput);
   }
 });
 
-export const getOtherUsersThunk = createAsyncThunk("user/getOtherUsers", async (_, { rejectWithValue }) => {
+export const searchUsersThunk = createAsyncThunk("user/search", async (query, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.get('/user/get-other-users')
+    const response = await axiosInstance.get('/user/search', { params: { query } });
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
-    const errorOutput = error?.response?.data?.message
-    return rejectWithValue(errorOutput);
+    return rejectWithValue(error?.response?.data?.message || "Search failed");
   }
 });
 
@@ -131,7 +81,6 @@ export const updateProfileThunk = createAsyncThunk("user/update-profile", async 
     toast.success("Profile updated successfully");
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message || "Failed to update profile";
     toast.error(errorOutput);
     return rejectWithValue(errorOutput);
@@ -148,7 +97,6 @@ export const changePasswordThunk = createAsyncThunk("user/change-password", asyn
     toast.success("Password changed successfully");
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message || "Failed to change password";
     toast.error(errorOutput);
     return rejectWithValue(errorOutput);
@@ -160,7 +108,6 @@ export const deleteAccountThunk = createAsyncThunk("user/delete-account", async 
     const response = await axiosInstance.delete('/user/delete-account');
     return response.data;
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message || "Failed to delete account";
     toast.error(errorOutput);
     return rejectWithValue(errorOutput);

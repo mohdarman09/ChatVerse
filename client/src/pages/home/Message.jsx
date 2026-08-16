@@ -2,6 +2,7 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import MessageStatus from '../../components/MessageStatus';
 import MessageActions from '../../components/MessageActions';
+import CallHistoryItem from '../../components/CallHistoryItem';
 
 function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, searchQuery, isMobile }) {
 
@@ -10,6 +11,10 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
 
     const isDeletedForEveryone = messageDetails?.isDeletedForEveryone;
     const isDeletedForSender = messageDetails?.isDeletedForSender;
+
+    if (messageDetails?.type === 'call') {
+        return <CallHistoryItem details={messageDetails} />;
+    }
 
     const formatTime = (dateString) => {
         const date = new Date(dateString);
@@ -63,7 +68,7 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
     // Mobile layout
     if (isMobile) {
         return (
-            <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-3 gap-2 relative`}>
+            <div className={`group flex ${isSender ? 'justify-end' : 'justify-start'} mb-3 gap-2 relative`}>
                 {!isSender && (
                     <div className="flex-shrink-0 self-end">
                         <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
@@ -147,6 +152,7 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
                         isSender={isSender}
                         onReply={onReply}
                         onStartEdit={onStartEdit}
+                        isMobile={true}
                     />
                 </div>
             </div>
@@ -185,7 +191,7 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
                 )}
 
                 <div
-                    className={`px-4 py-2.5 text-sm leading-relaxed shadow-lg relative
+                    className={`px-4 py-2.5 text-sm leading-relaxed shadow-lg relative break-word
                         ${isSender
                             ? 'gradient-primary text-white rounded-2xl rounded-br-md shadow-primary/20'
                             : 'glass rounded-2xl rounded-bl-md text-gray-200'

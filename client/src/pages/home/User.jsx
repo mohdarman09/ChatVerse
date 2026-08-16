@@ -8,7 +8,6 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
   const dispatch = useDispatch();
   const { selectedUser } = useSelector(state => state.userReducer);
   const { onlineUsers } = useSelector(state => state.socketReducer);
-  const { lastSeenMap } = useSelector(state => state.userReducer);
   const isUserOnline = onlineUsers?.includes(userDetails?._id);
   const isSelected = userDetails?._id === selectedUser?._id;
 
@@ -16,23 +15,6 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
     dispatch(setSelectedUser(userDetails));
     if (onClick) onClick();
   }
-
-  const formatLastSeen = () => {
-    const lastSeen = lastSeenMap[userDetails?._id] || userDetails?.lastSeen;
-    if (!lastSeen || isUserOnline) return null;
-    const date = new Date(lastSeen);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 2) return "yesterday";
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
 
   const formatMessageTime = () => {
     if (!lastMessage?.createdAt) return '';
@@ -43,8 +25,6 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
     if (diffDays === 1) return 'Yesterday';
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
-
-  const lastSeenText = formatLastSeen();
 
   // Mobile layout: dedicated user row with touch-friendly sizing
   if (isMobile) {
@@ -65,7 +45,7 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
             />
           </div>
           {isUserOnline && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--bg-primary)]" />
+            <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--bg-primary)]" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -98,7 +78,7 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
     );
   }
 
-  // Desktop layout: exact original, untouched
+  // Desktop layout
   return (
     <div
       onClick={handleUserClick}
@@ -119,7 +99,7 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
           />
         </div>
         {isUserOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 status-dot status-dot-online" />
+          <div className="absolute -top-0.5 -right-0.5 status-dot status-dot-online" />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -135,7 +115,7 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
           <p className="flex-1 text-xs text-gray-500 truncate">
             {lastMessage ? (
               <span className="text-gray-500">
-                {lastMessage.message}
+                {lastMessage.messageType === 'image' ? '📷 Image' : lastMessage.message}
               </span>
             ) : (
               <span className="text-gray-600">@{userDetails?.username}</span>

@@ -1,12 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getOtherUsersThunk, getUserProfileThunk, loginUserThunk, logoutUserThunk, registerUserThunk, updateProfileThunk, changePasswordThunk, deleteAccountThunk, verifyOTPThunk, forgotPasswordThunk, resetPasswordThunk } from "./user.thunk";
+import { getUserProfileThunk, loginUserThunk, logoutUserThunk, registerUserThunk, updateProfileThunk, changePasswordThunk, deleteAccountThunk } from "./user.thunk";
 
 export const userSlice = createSlice({
   name: "user",
   initialState: {
     isAuthenticated: false,
     userProfile: null,
-    otherUsers: null,
     selectedUser: JSON.parse(localStorage.getItem("selectedUser")) || null,
     buttonLoading: false,
     screenLoading: true,
@@ -20,9 +19,6 @@ export const userSlice = createSlice({
     setUserLastSeen: (state, action) => {
       const { userId, lastSeen } = action.payload;
       state.lastSeenMap[userId] = lastSeen;
-    },
-    setUsersLastSeenMap: (state, action) => {
-      state.lastSeenMap = { ...state.lastSeenMap, ...action.payload };
     },
   },
   extraReducers: (builder) => {
@@ -41,49 +37,18 @@ export const userSlice = createSlice({
     builder.addCase(registerUserThunk.pending, (state) => {
       state.buttonLoading = true;
     });
-    builder.addCase(registerUserThunk.fulfilled, (state) => {
+    builder.addCase(registerUserThunk.fulfilled, (state, action) => {
+      state.userProfile = action.payload?.responseData?.user;
+      state.isAuthenticated = true;
       state.buttonLoading = false;
     });
     builder.addCase(registerUserThunk.rejected, (state) => {
       state.buttonLoading = false;
     });
 
-    builder.addCase(verifyOTPThunk.pending, (state) => {
-      state.buttonLoading = true;
-    });
-    builder.addCase(verifyOTPThunk.fulfilled, (state, action) => {
-      state.userProfile = action.payload?.responseData?.user;
-      state.isAuthenticated = true;
-      state.buttonLoading = false;
-    });
-    builder.addCase(verifyOTPThunk.rejected, (state) => {
-      state.buttonLoading = false;
-    });
-
-    builder.addCase(forgotPasswordThunk.pending, (state) => {
-      state.buttonLoading = true;
-    });
-    builder.addCase(forgotPasswordThunk.fulfilled, (state) => {
-      state.buttonLoading = false;
-    });
-    builder.addCase(forgotPasswordThunk.rejected, (state) => {
-      state.buttonLoading = false;
-    });
-
-    builder.addCase(resetPasswordThunk.pending, (state) => {
-      state.buttonLoading = true;
-    });
-    builder.addCase(resetPasswordThunk.fulfilled, (state) => {
-      state.buttonLoading = false;
-    });
-    builder.addCase(resetPasswordThunk.rejected, (state) => {
-      state.buttonLoading = false;
-    });
-
     builder.addCase(logoutUserThunk.fulfilled, (state) => {
       state.userProfile = null;
       state.selectedUser = null;
-      state.otherUsers = null;
       state.isAuthenticated = false;
       state.buttonLoading = false;
       localStorage.removeItem("selectedUser");
@@ -101,17 +66,6 @@ export const userSlice = createSlice({
       state.userProfile = action.payload?.responseData;
     });
     builder.addCase(getUserProfileThunk.rejected, (state) => {
-      state.screenLoading = false;
-    });
-
-    builder.addCase(getOtherUsersThunk.pending, (state) => {
-      state.screenLoading = true;
-    });
-    builder.addCase(getOtherUsersThunk.fulfilled, (state, action) => {
-      state.screenLoading = false;
-      state.otherUsers = action.payload?.responseData;
-    });
-    builder.addCase(getOtherUsersThunk.rejected, (state) => {
       state.screenLoading = false;
     });
 
@@ -144,7 +98,6 @@ export const userSlice = createSlice({
     builder.addCase(deleteAccountThunk.fulfilled, (state) => {
       state.userProfile = null;
       state.selectedUser = null;
-      state.otherUsers = null;
       state.isAuthenticated = false;
       state.buttonLoading = false;
       localStorage.removeItem("selectedUser");
@@ -155,6 +108,6 @@ export const userSlice = createSlice({
   },
 });
 
-export const { setSelectedUser, setUserLastSeen, setUsersLastSeenMap } = userSlice.actions;
+export const { setSelectedUser, setUserLastSeen } = userSlice.actions;
 
 export default userSlice.reducer;

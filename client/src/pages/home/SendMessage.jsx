@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { IoIosSend } from "react-icons/io";
-import { BsEmojiSmile, BsReply, BsPencil, BsX, BsImage } from "react-icons/bs";
+import { BsReply, BsPencil, BsX, BsPaperclip } from "react-icons/bs";
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { sendMessageThunk } from '../../store/slice/message/message.thunk';
-
+import AttachmentSheet from '../../components/AttachmentSheet';
+import CameraScreen from '../../components/CameraScreen';
 
 const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isMobile }) => {
 
@@ -16,9 +17,12 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [imageUploading, setImageUploading] = useState(false);
+    const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
+    const [cameraOpen, setCameraOpen] = useState(false);
     const typingTimeoutRef = useRef(null);
     const isTypingRef = useRef(false);
     const fileInputRef = useRef(null);
+    const inputRef = useRef(null);
 
     useEffect(() => {
         if (editingMessage) {
@@ -83,6 +87,31 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const handleGalleryClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleCameraSend = (file) => {
+        setSelectedImage(file);
+        setImagePreview(URL.createObjectURL(file));
+        setCameraOpen(false);
+    };
+
+    const handleAttachmentClick = () => {
+        if (editingMessage) return;
+        setShowAttachmentSheet(true);
+    };
+
+    const handleSheetCamera = () => {
+        setShowAttachmentSheet(false);
+        setCameraOpen(true);
+    };
+
+    const handleSheetGallery = () => {
+        setShowAttachmentSheet(false);
+        handleGalleryClick();
+    };
+
     const removeSelectedImage = () => {
         if (imagePreview) URL.revokeObjectURL(imagePreview);
         setSelectedImage(null);
@@ -102,6 +131,7 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
             }
             if (onCancelEdit) onCancelEdit();
             setMessage("");
+            if (inputRef.current) inputRef.current.style.height = 'auto';
             return;
         }
 
@@ -133,6 +163,7 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
             }))
         }
         setMessage("");
+        if (inputRef.current) inputRef.current.style.height = 'auto';
 
         if (isTypingRef.current) {
             isTypingRef.current = false;
@@ -153,6 +184,9 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
     }
 
     const handleInputChange = (e) => {
+        const el = e.target;
+        el.style.height = 'auto';
+        el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
         setMessage(e.target.value);
         if (!editingMessage) {
             emitTyping();
@@ -164,7 +198,8 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
     // Mobile layout
     if (isMobile) {
         return (
-            <div className="safe-bottom-mobile">
+            <>
+            <div>
                 {(replyTo || editingMessage) && (
                     <div className="px-2 pt-2">
                         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
@@ -202,32 +237,29 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
                         </div>
                     </div>
                 )}
-                <div className="px-2 py-2">
-                    <div className="flex items-center gap-2">
-                        <button className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-primary hover:bg-white/5 transition-all flex-shrink-0" aria-label="Add emoji">
-                            <BsEmojiSmile className="w-5 h-5" />
-                        </button>
+                <div className="px-1.5 pt-1 pb-1.5">
+                    <div className="flex items-center gap-1.5">
                         <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-primary hover:bg-white/5 transition-all flex-shrink-0"
-                            aria-label="Send image"
+                            onClick={handleAttachmentClick}
+                            className="w-11 h-11 flex items-center justify-center rounded-2xl text-gray-400 hover:text-primary hover:bg-white/5 transition-all flex-shrink-0"
+                            aria-label="Attach photo"
                             disabled={!!editingMessage}
                         >
-                            <BsImage className="w-5 h-5" />
+                            <BsPaperclip className="w-5 h-5" />
                         </button>
-                        <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                placeholder={editingMessage ? "Edit message..." : "Type a message..."}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[16px] text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                        <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white/[0.05] border border-white/[0.08] px-2 py-1">
+                            <textarea
+                                ref={inputRef}
+                                rows={1}
+                                placeholder={editingMessage ? "Edit message..." : "Message"}
+                                className="flex-1 min-w-0 w-full bg-transparent px-1 py-2 text-[16px] text-white placeholder-gray-500 focus:outline-none resize-none overflow-y-auto max-h-28 leading-snug"
                                 onChange={handleInputChange}
                                 value={message}
                                 onKeyDown={handleKeyDown}
                             />
                         </div>
                         <button
-                            className={`w-11 h-11 flex items-center justify-center rounded-xl text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0
+                            className={`w-11 h-11 flex items-center justify-center rounded-2xl text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0
                                 ${editingMessage
                                     ? 'bg-yellow-500 shadow-yellow-500/25'
                                     : 'gradient-primary shadow-primary/25'
@@ -247,11 +279,26 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
                     </div>
                 </div>
             </div>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
+            <AttachmentSheet
+                open={showAttachmentSheet}
+                onClose={() => setShowAttachmentSheet(false)}
+                onCamera={handleSheetCamera}
+                onGallery={handleSheetGallery}
+            />
+            <CameraScreen
+                key={cameraOpen ? 'camera-open' : 'camera-closed'}
+                open={cameraOpen}
+                onClose={() => setCameraOpen(false)}
+                onSend={handleCameraSend}
+            />
+            </>
         );
     }
 
-    // Desktop layout: exact original, untouched
+    // Desktop layout
     return (
+        <>
         <div className="sticky bottom-0 glass border-t border-white/5">
             {(replyTo || editingMessage) && (
                 <div className="px-3 pt-2">
@@ -297,31 +344,19 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
             <div className="p-3">
                 <div className="flex items-center gap-2 max-w-4xl mx-auto">
                     <button
+                        onClick={handleAttachmentClick}
                         className="p-2 rounded-xl text-gray-500 hover:text-primary hover:bg-primary/10 transition-all duration-300 flex-shrink-0"
-                        aria-label="Add emoji"
-                    >
-                        <BsEmojiSmile className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2 rounded-xl text-gray-500 hover:text-primary hover:bg-primary/10 transition-all duration-300 flex-shrink-0"
-                        aria-label="Send image"
+                        aria-label="Attach photo"
                         disabled={!!editingMessage}
                     >
-                        <BsImage className="w-5 h-5" />
+                        <BsPaperclip className="w-5 h-5" />
                     </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        className="hidden"
-                        onChange={handleImageSelect}
-                    />
-                    <div className="flex-1 relative group">
-                        <input
-                            type="text"
+                    <div className="flex-1 relative">
+                        <textarea
+                            ref={inputRef}
+                            rows={1}
                             placeholder={editingMessage ? "Edit message..." : "Type a message..."}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300 resize-none overflow-y-auto max-h-32 leading-snug"
                             onChange={handleInputChange}
                             value={message}
                             onKeyDown={handleKeyDown}
@@ -348,6 +383,20 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
                 </div>
             </div>
         </div>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
+        <AttachmentSheet
+            open={showAttachmentSheet}
+            onClose={() => setShowAttachmentSheet(false)}
+            onCamera={handleSheetCamera}
+            onGallery={handleSheetGallery}
+        />
+        <CameraScreen
+            key={cameraOpen ? 'camera-open' : 'camera-closed'}
+            open={cameraOpen}
+            onClose={() => setCameraOpen(false)}
+            onSend={handleCameraSend}
+        />
+        </>
     )
 }
 

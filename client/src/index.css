@@ -50,6 +50,7 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
@@ -335,6 +336,11 @@ body {
 /* Safe area inset for mobile bottom elements */
 .safe-bottom-mobile {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
+/* Safe area inset for mobile top elements */
+.safe-top-mobile {
+  padding-top: max(env(safe-area-inset-top, 0px), 0px);
 }
 
 /* Word break for message text on all devices */

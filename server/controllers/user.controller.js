@@ -1,17 +1,13 @@
 import User from "../models/user.model.js";
-import PendingUser from "../models/pendingUser.model.js";
 import { asyncHandler } from "../utilities/asyncHandler.utilitiy.js";
 import { errorHandler } from "../utilities/errorHandler.utility.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { generateInitialsAvatar } from "../utilities/avatar.utility.js";
-import { sendOTPEmail } from "../utilities/mailer.utility.js";
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const signToken = (userId) => {
     return jwt.sign({ _id: userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
@@ -27,15 +23,11 @@ const setCookie = (res, token) => {
 };
 
 export const register = asyncHandler(async (req, res, next) => {
-    console.log('[REGISTER] request received');
-
     const { fullName, username, email, password, gender, avatar } = req.body;
 
     if (!fullName?.trim() || !username?.trim() || !email?.trim() || !password) {
         return next(new errorHandler("All fields are required", 400));
     }
-
-    console.log('[REGISTER] validation passed');
 
     const trimmedFullName = fullName.trim();
     const trimmedUsername = username.trim();
@@ -67,97 +59,26 @@ export const register = asyncHandler(async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('[REGISTER] password hashed');
 
-    const otp = generateOTP();
-    console.log('[REGISTER] OTP generated');
-
-    await PendingUser.create({
+    const user = await User.create({
         fullName: trimmedFullName,
         username: trimmedUsername,
         email: trimmedEmail,
         password: hashedPassword,
         gender: gender || 'male',
-        avatar: avatar || null,
-        otp,
-        otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
+        avatar: avatar || generateInitialsAvatar(trimmedFullName, trimmedUsername),
     });
-    console.log('[REGISTER] database operation completed (PendingUser created)');
 
-    await sendOTPEmail(trimmedEmail, otp, 'verification');
+    const token = signToken(user._id);
+    setCookie(res, token);
+
+    const userData = user.toObject();
+    delete userData.password;
 
     res.status(201).json({
         success: true,
-        message: "OTP sent to your email. Please verify to continue.",
-        responseData: {
-            email: trimmedEmail,
-        }
-    });
-});
-
-export const verifyOTP = asyncHandler(async (req, res, next) => {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-        return next(new errorHandler("Email and OTP are required", 400));
-    }
-
-    const pending = await PendingUser.findOne({ email: email.trim().toLowerCase() });
-    if (!pending) {
-        return next(new errorHandler("No pending registration found. Please register again.", 404));
-    }
-
-    if (pending.otp !== otp) {
-        return next(new errorHandler("Invalid OTP", 400));
-    }
-
-    if (new Date() > pending.otpExpiry) {
-        await PendingUser.deleteOne({ _id: pending._id });
-        return next(new errorHandler("OTP has expired. Please register again.", 400));
-    }
-
-    const avatar = pending.avatar || generateInitialsAvatar(pending.fullName, pending.username);
-
-    const user = await User.create({
-        fullName: pending.fullName,
-        username: pending.username,
-        email: pending.email,
-        password: pending.password,
-        gender: pending.gender,
-        avatar,
-    });
-
-    await PendingUser.deleteOne({ _id: pending._id });
-
-    res.status(201).json({
-        success: true,
-        message: "Email verified successfully. You can now login.",
-        responseData: { email: user.email }
-    });
-});
-
-export const resendOTP = asyncHandler(async (req, res, next) => {
-    const { email } = req.body;
-
-    if (!email) {
-        return next(new errorHandler("Email is required", 400));
-    }
-
-    const pending = await PendingUser.findOne({ email: email.trim().toLowerCase() });
-    if (!pending) {
-        return next(new errorHandler("No pending registration found. Please register again.", 404));
-    }
-
-    const otp = generateOTP();
-    pending.otp = otp;
-    pending.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    await pending.save();
-
-    await sendOTPEmail(pending.email, otp, 'verification');
-
-    res.status(200).json({
-        success: true,
-        message: "OTP resent to your email"
+        message: "Account created successfully",
+        responseData: { user: userData, token }
     });
 });
 
@@ -186,75 +107,12 @@ export const login = asyncHandler(async (req, res, next) => {
     const token = signToken(user._id);
     setCookie(res, token);
 
-    res.status(200).json({
-        success: true,
-        responseData: { user, token }
-    });
-});
-
-export const forgotPassword = asyncHandler(async (req, res, next) => {
-    const { email } = req.body;
-
-    if (!email) {
-        return next(new errorHandler("Email is required", 400));
-    }
-
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
-    if (!user) {
-        return next(new errorHandler("No account found with this email", 404));
-    }
-
-    const otp = generateOTP();
-    user.emailOTP = otp;
-    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    await user.save();
-
-    await sendOTPEmail(user.email, otp, 'reset');
+    const userData = user.toObject();
+    delete userData.password;
 
     res.status(200).json({
         success: true,
-        message: "OTP sent to your email",
-        responseData: { email: user.email }
-    });
-});
-
-export const resetPassword = asyncHandler(async (req, res, next) => {
-    const { email, otp, newPassword, confirmPassword } = req.body;
-
-    if (!email || !otp || !newPassword || !confirmPassword) {
-        return next(new errorHandler("All fields are required", 400));
-    }
-
-    if (newPassword !== confirmPassword) {
-        return next(new errorHandler("Passwords do not match", 400));
-    }
-
-    if (!passwordRegex.test(newPassword)) {
-        return next(new errorHandler("Password must be at least 8 characters with uppercase, lowercase, number and special character", 400));
-    }
-
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
-    if (!user) {
-        return next(new errorHandler("User not found", 404));
-    }
-
-    if (user.emailOTP !== otp) {
-        return next(new errorHandler("Invalid OTP", 400));
-    }
-
-    if (new Date() > user.otpExpiry) {
-        return next(new errorHandler("OTP has expired. Please request a new one.", 400));
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.emailOTP = undefined;
-    user.otpExpiry = undefined;
-    await user.save();
-
-    res.status(200).json({
-        success: true,
-        message: "Password reset successfully. You can now login."
+        responseData: { user: userData, token }
     });
 });
 
@@ -280,13 +138,32 @@ export const logout = asyncHandler(async (req, res, next) => {
         })
 });
 
-export const getOtherUsers = asyncHandler(async (req, res, next) => {
-    const otherUsers = await User.find({ _id: { $ne: req.user._id } });
+export const searchUsers = asyncHandler(async (req, res, next) => {
+    const query = (req.query.query || "").trim();
+    const myId = req.user._id;
+
+    if (!query) {
+        return res.status(200)
+            .json({
+                success: true,
+                responseData: [],
+            })
+    }
+
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "i");
+
+    const users = await User.find({
+        _id: { $ne: myId },
+        $or: [{ username: regex }, { fullName: regex }],
+    })
+        .select("fullName username avatar lastSeen")
+        .limit(20);
 
     res.status(200)
         .json({
             success: true,
-            responseData: otherUsers,
+            responseData: users,
         })
 });
 

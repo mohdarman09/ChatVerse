@@ -1,6 +1,8 @@
 import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
 import Message from "../models/message.model.js";
 import Conversation from "../models/conversation.model.js";
+import CallLog from "../models/call.model.js";
 import { asyncHandler } from "../utilities/asyncHandler.utilitiy.js";
 import { errorHandler } from "../utilities/errorHandler.utility.js";
 import { getSocketId, io } from "../socket/socket.js";
@@ -16,6 +18,10 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
     const senderId = req.user._id;
     const recieverId = req.params.recieverId;
     const { message } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(recieverId)) {
+        return next(new errorHandler("Invalid user id", 400));
+    }
 
     let messageText = message || '';
     let replyTo = req.body.replyTo;
@@ -96,6 +102,10 @@ export const getMessages = asyncHandler(async (req, res, next) => {
     const myId = req.user._id;
     const otherParticipantId = req.params.otherParticipantId;
 
+    if (!mongoose.Types.ObjectId.isValid(otherParticipantId)) {
+        return next(new errorHandler("Invalid user id", 400));
+    }
+
     await Message.updateMany(
         {
             senderId: otherParticipantId,
@@ -107,21 +117,54 @@ export const getMessages = asyncHandler(async (req, res, next) => {
         }
     );
 
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 100);
+    const before = req.query.before;
+
     const conversation = await Conversation.findOne({
         participants: { $all: [myId, otherParticipantId] }
-    }).populate("messages");
+    });
 
-    const filteredMessages = conversation?.messages?.filter(msg => {
-        if (String(msg.senderId) === String(myId) && msg.isDeletedForSender) return false;
-        if (msg.isDeletedForEveryone) return false;
-        return true;
-    }) || [];
+    const andConditions = [
+        {
+            $or: [
+                { senderId: myId, recieverId: otherParticipantId },
+                { senderId: otherParticipantId, recieverId: myId },
+            ],
+        },
+        { isDeletedForEveryone: { $ne: true } },
+        { $nor: [{ senderId: myId, isDeletedForSender: true }] },
+    ];
+
+    if (before) {
+        if (!mongoose.Types.ObjectId.isValid(before)) {
+            return next(new errorHandler("Invalid cursor", 400));
+        }
+        andConditions.push({ _id: { $lt: before } });
+    }
+
+    const page = await Message.find({ $and: andConditions })
+        .sort({ _id: -1 })
+        .limit(limit + 1);
+
+    const hasMore = page.length > limit;
+    const messages = page.slice(0, limit).reverse();
+    const nextCursor = hasMore ? String(messages[0]?._id) : null;
+
+    const calls = await CallLog.find({
+        $or: [
+            { callerId: myId, receiverId: otherParticipantId },
+            { callerId: otherParticipantId, receiverId: myId },
+        ],
+    }).sort({ createdAt: 1 });
 
     res.status(200).json({
         success: true,
         responseData: {
-            messages: filteredMessages,
-            conversationId: conversation?._id
+            messages,
+            calls,
+            conversationId: conversation?._id,
+            hasMore,
+            nextCursor
         },
     });
 });
@@ -167,6 +210,18 @@ export const deleteMessage = asyncHandler(async (req, res, next) => {
     msg.deletedAt = new Date();
     await msg.save();
 
+    const deleteData = { messageId: String(msg._id), deleteForEveryone: !!deleteForEveryone, deletedBy: String(userId) };
+    const senderSocketId = getSocketId(String(userId));
+    if (senderSocketId) {
+        io.to(senderSocketId).emit("messageDeleted", deleteData);
+    }
+    if (deleteForEveryone) {
+        const receiverSocketId = getSocketId(String(msg.recieverId));
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageDeleted", deleteData);
+        }
+    }
+
     res.status(200).json({ success: true, responseData: msg });
 });
 
@@ -196,6 +251,16 @@ export const reactToMessage = asyncHandler(async (req, res, next) => {
     }
 
     await msg.save();
+
+    const reactionData = { messageId: String(msg._id), reactions: msg.reactions };
+    const senderSocketId = getSocketId(String(userId));
+    if (senderSocketId) {
+        io.to(senderSocketId).emit("messageReacted", reactionData);
+    }
+    const receiverSocketId = getSocketId(String(msg.recieverId));
+    if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messageReacted", reactionData);
+    }
 
     res.status(200).json({ success: true, responseData: msg });
 });
@@ -230,7 +295,8 @@ export const getConversations = asyncHandler(async (req, res, next) => {
                 lastSeen: otherUser.lastSeen
             } : null,
             lastMessage: conv.lastMessage || null,
-            unreadCount
+            unreadCount,
+            updatedAt: conv.updatedAt
         };
     }));
 

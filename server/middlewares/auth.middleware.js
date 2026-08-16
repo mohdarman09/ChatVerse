@@ -13,7 +13,13 @@ export const isAuthenticated = asyncHandler(async (req, res, next) => {
         return next(new errorHandler("Invalid token", 400));
     }
 
-    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+    let tokenData;
+    try {
+        tokenData = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+        return next(new errorHandler("Invalid token", 400));
+    }
+
     req.user = tokenData;
     next();
 });

@@ -35,7 +35,7 @@ function Login() {
     const response = await dispatch(loginUserThunk(loginData));
     if (response?.payload?.success) {
       navigate("/");
-      toast.success("Login successful!");
+      toast.success("Login successful! Welcome back.");
     }
   };
 
@@ -51,7 +51,7 @@ function Login() {
       </div>
 
       <div className="relative w-full max-w-md animate-fade-in-up">
-        <div className="glass-card p-8 space-y-6">
+        <div className="glass-card p-5 sm:p-8 space-y-6">
           <div className="text-center space-y-3">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary shadow-lg shadow-primary/25">
               <RiMessage2Fill className="w-8 h-8 text-white" />
@@ -101,12 +101,6 @@ function Login() {
                   {showPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
                 </button>
               </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-primary transition-colors">
-                Forgot password?
-              </Link>
             </div>
 
             <button

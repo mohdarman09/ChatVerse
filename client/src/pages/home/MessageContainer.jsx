@@ -1,24 +1,27 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import Message from './Message'
 import { useDispatch, useSelector } from 'react-redux';
-import { getMessageThunk } from '../../store/slice/message/message.thunk';
+import { getMessageThunk, loadOlderMessagesThunk } from '../../store/slice/message/message.thunk';
 import { resetUnreadCount } from '../../store/slice/message/message.slice';
 import SendMessage from './SendMessage';
 import TypingIndicator from '../../components/TypingIndicator';
 import DateSeparator from '../../components/DateSeparator';
 import MessageSearch from '../../components/MessageSearch';
 import { IoArrowBack, IoSearch } from 'react-icons/io5';
-import { BsChatDots } from 'react-icons/bs';
+import { BsChatDots, BsTelephone } from 'react-icons/bs';
+import { useCall } from '../../context/CallContext';
 
 function MessageContainer({ onBack, isMobile }) {
 
   const dispatch = useDispatch();
   const { selectedUser, userProfile } = useSelector(state => state.userReducer);
-  const { messages, buttonLoading } = useSelector(state => state.messageReducer);
+  const { messages, buttonLoading, hasMore, nextCursor, loadingOlder } = useSelector(state => state.messageReducer);
   const { onlineUsers, socket } = useSelector(state => state.socketReducer);
+  const { startCall } = useCall();
   const isUserOnline = onlineUsers?.includes(selectedUser?._id);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const scrollAdjustRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,6 +30,7 @@ function MessageContainer({ onBack, isMobile }) {
   const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
+    scrollAdjustRef.current = null;
     if (selectedUser?._id) {
       dispatch(getMessageThunk({ recieverId: selectedUser?._id }));
       dispatch(resetUnreadCount(selectedUser._id));
@@ -58,13 +62,38 @@ function MessageContainer({ onBack, isMobile }) {
     }
   }, [messages, isAtBottom]);
 
+  useEffect(() => {
+    if (!scrollAdjustRef.current) return;
+    const { prevScrollHeight, prevScrollTop } = scrollAdjustRef.current;
+    scrollAdjustRef.current = null;
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight - prevScrollHeight + prevScrollTop;
+    }
+  }, [messages]);
+
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
     const threshold = 100;
     const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     setIsAtBottom(atBottom);
-  }, []);
+
+    if (
+      container.scrollTop < 120 &&
+      hasMore &&
+      !loadingOlder &&
+      !scrollAdjustRef.current &&
+      selectedUser?._id &&
+      nextCursor
+    ) {
+      scrollAdjustRef.current = {
+        prevScrollHeight: container.scrollHeight,
+        prevScrollTop: container.scrollTop,
+      };
+      dispatch(loadOlderMessagesThunk({ recieverId: selectedUser._id, before: nextCursor }));
+    }
+  }, [hasMore, loadingOlder, nextCursor, selectedUser, dispatch]);
 
   const handleReply = useCallback((message) => {
     setReplyTo({
@@ -136,8 +165,8 @@ function MessageContainer({ onBack, isMobile }) {
   // Mobile layout: dedicated full-screen chat
   if (isMobile) {
     return (
-      <div className="w-full h-screen flex flex-col bg-[var(--bg-primary)]">
-        <div className="sticky top-0 z-10 bg-[var(--bg-secondary)] border-b border-white/[0.06]">
+      <div className="w-full h-dvh flex flex-col bg-[var(--bg-primary)]">
+        <div className="sticky top-0 z-10 bg-[var(--bg-secondary)] border-b border-white/[0.06] safe-top-mobile">
           <div className="flex items-center gap-3 px-2 py-2">
             <button
               onClick={onBack}
@@ -158,7 +187,7 @@ function MessageContainer({ onBack, isMobile }) {
                 />
               </div>
               {isUserOnline && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
+                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
               )}
             </div>
             <div className="min-w-0 flex-1">
@@ -167,6 +196,13 @@ function MessageContainer({ onBack, isMobile }) {
                 {isUserOnline ? 'Online' : 'Offline'}
               </p>
             </div>
+            <button
+              onClick={() => startCall(selectedUser)}
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              aria-label="Audio call"
+            >
+              <BsTelephone className="w-5 h-5" />
+            </button>
             <button
               onClick={() => setShowSearch(!showSearch)}
               className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${showSearch ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
@@ -185,6 +221,20 @@ function MessageContainer({ onBack, isMobile }) {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto"
         >
+          {!buttonLoading && messages?.length > 0 && !hasMore && (
+            <div className="flex justify-center pt-3">
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/5 rounded-full px-3 py-1">
+                Beginning of conversation
+              </div>
+            </div>
+          )}
+
+          {loadingOlder && (
+            <div className="flex justify-center py-2">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
           {buttonLoading && messages?.length === 0 ? (
             <div className="space-y-4 p-4">
               {[...Array(5)].map((_, i) => (
@@ -213,7 +263,7 @@ function MessageContainer({ onBack, isMobile }) {
               <p className="text-gray-500 text-sm">No messages match your search</p>
             </div>
           ) : (
-            <div className="px-3 py-3">
+            <div className="px-3 pt-3 pb-6">
               {groupedMessages.map((item, index) => {
                 if (item.type === 'date') {
                   return <DateSeparator key={`date-${index}`} date={item.date} />;
@@ -306,7 +356,7 @@ function MessageContainer({ onBack, isMobile }) {
               />
             </div>
             {isUserOnline && (
-              <div className="absolute -bottom-0.5 -right-0.5 status-dot status-dot-online" />
+              <div className="absolute -top-0.5 -right-0.5 status-dot status-dot-online" />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -315,6 +365,13 @@ function MessageContainer({ onBack, isMobile }) {
               {isUserOnline ? 'Online' : 'Offline'}
             </p>
           </div>
+          <button
+            onClick={() => startCall(selectedUser)}
+            className="p-2 rounded-xl transition-all duration-300 text-gray-400 hover:text-white hover:bg-white/5"
+            aria-label="Audio call"
+          >
+            <BsTelephone className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setShowSearch(!showSearch)}
             className={`p-2 rounded-xl transition-all duration-300 ${showSearch ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
@@ -331,9 +388,23 @@ function MessageContainer({ onBack, isMobile }) {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 scrollbar-custom"
-      >
-        {buttonLoading && messages?.length === 0 ? (
+          className="flex-1 overflow-y-auto px-4 py-4 scrollbar-custom"
+        >
+          {!buttonLoading && messages?.length > 0 && !hasMore && (
+            <div className="flex justify-center pb-2">
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/5 rounded-full px-3 py-1">
+                Beginning of conversation
+              </div>
+            </div>
+          )}
+
+          {loadingOlder && (
+            <div className="flex justify-center pb-2">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+          {buttonLoading && messages?.length === 0 ? (
           <div className="space-y-4 p-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} gap-3 animate-fade-in`}>

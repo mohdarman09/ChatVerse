@@ -28,7 +28,3 @@ export const generateInitialsAvatar = (fullName, seed) => {
     </svg>`;
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 };
-
-export const getInitialsFromName = getInitials;
-
-export const getColorFromSeed = getAvatarColor;

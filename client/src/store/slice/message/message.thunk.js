@@ -22,7 +22,6 @@ export const sendMessageThunk = createAsyncThunk("message/send", async ({ reciev
     return response.data;
 
   } catch (error) {
-    console.error(error?.response?.data?.message);
     const errorOutput = error?.response?.data?.message || error?.message || "Failed to send message"
     toast.error(errorOutput)
     return rejectWithValue(errorOutput);
@@ -33,12 +32,30 @@ export const sendMessageThunk = createAsyncThunk("message/send", async ({ reciev
 export const getMessageThunk = createAsyncThunk(
   "message/get",
   async ({ recieverId }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        `/message/get-messages/${recieverId}`
+      );
+      return response.data;
+    } catch (error) {
+      const errorOutput = error?.response?.data?.message || error?.message || "Failed to load messages";
+      return rejectWithValue(errorOutput);
+    }
+  }
+);
 
-    const response = await axiosInstance.get(
-      `/message/get-messages/${recieverId}`
-    );
-
-    return response.data;
+export const loadOlderMessagesThunk = createAsyncThunk(
+  "message/loadOlder",
+  async ({ recieverId, before }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        `/message/get-messages/${recieverId}?limit=100&before=${before}`
+      );
+      return response.data;
+    } catch (error) {
+      const errorOutput = error?.response?.data?.message || error?.message || "Failed to load older messages";
+      return rejectWithValue(errorOutput);
+    }
   }
 );
 

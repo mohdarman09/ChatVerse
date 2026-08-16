@@ -1,18 +1,22 @@
-import React, { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import UserSidebar from './UserSidebar'
 import MessageContainer from './MessageContainer'
 import { useDispatch, useSelector } from 'react-redux';
-import { getOtherUsersThunk, getUserProfileThunk } from '../../store/slice/user/user.thunk';
+import { getUserProfileThunk } from '../../store/slice/user/user.thunk';
 import { initializeSocket, setOnlineUsers } from '../../store/slice/socket/socket.slice';
 import {
   setNewMessage,
+  addCallLog,
   setMessagesSeen,
   editMessageInStore,
   deleteMessageFromStore,
   updateMessageReactions,
   setTypingUsers,
 } from '../../store/slice/message/message.slice';
+import { getConversationsThunk } from '../../store/slice/message/message.thunk';
 import { setUserLastSeen } from '../../store/slice/user/user.slice';
+import CallProvider from '../../context/CallContext';
+import CallUI from '../../components/CallUI';
 
 function Home() {
 
@@ -28,21 +32,27 @@ function Home() {
 
   useEffect(() => {
     dispatch(getUserProfileThunk());
-    dispatch(getOtherUsersThunk());
   }, []);
 
-  const { isAuthenticated, userProfile, selectedUser, otherUsers } = useSelector(state => state.userReducer);
+  const { isAuthenticated, userProfile, selectedUser } = useSelector(state => state.userReducer);
   const { socket } = useSelector(state => state.socketReducer);
-  const { unreadCounts } = useSelector(state => state.messageReducer);
+  const { unreadCounts, conversations, conversationsStale } = useSelector(state => state.messageReducer);
 
   const selectedUserRef = useRef(selectedUser);
-  const otherUsersRef = useRef(otherUsers);
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
+
+  const conversationsRef = useRef(conversations);
   useEffect(() => {
-    otherUsersRef.current = otherUsers;
-  }, [otherUsers]);
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  useEffect(() => {
+    if (conversationsStale) {
+      dispatch(getConversationsThunk());
+    }
+  }, [conversationsStale]);
 
   useEffect(() => {
     if (!isAuthenticated || !userProfile?.profile?._id) return;
@@ -84,6 +94,13 @@ function Home() {
       dispatch(updateMessageReactions({ messageId, reactions }));
     });
 
+    socket.on("callHistory", ({ log, peerId }) => {
+      const current = selectedUserRef.current;
+      if (current?._id && String(peerId) === String(current._id)) {
+        dispatch(addCallLog({ log, peerId }));
+      }
+    });
+
     socket.on("userLastSeen", ({ userId, lastSeen }) => {
       dispatch(setUserLastSeen({ userId, lastSeen }));
     });
@@ -97,6 +114,7 @@ function Home() {
       socket.off("messageEdited");
       socket.off("messageDeleted");
       socket.off("messageReacted");
+      socket.off("callHistory");
       socket.off("userLastSeen");
       socket.disconnect();
     }
@@ -112,13 +130,14 @@ function Home() {
     if (!socket) return;
     const handleBrowserNotification = (newMessage) => {
       const currentSelectedUser = selectedUserRef.current;
-      const currentOtherUsers = otherUsersRef.current;
       if (document.hidden && String(newMessage.senderId) !== String(currentSelectedUser?._id)) {
         if ('Notification' in window && Notification.permission === 'granted') {
-          const sender = currentOtherUsers?.find(u => u._id === newMessage.senderId);
-          new Notification(`ChatVerse - ${sender?.fullName || 'New message'}`, {
-            body: newMessage.message?.substring(0, 100),
-            icon: sender?.avatar,
+          const otherUser = conversationsRef.current?.find(
+            c => String(c.otherUser?._id) === String(newMessage.senderId)
+          )?.otherUser;
+          new Notification(`ChatVerse - ${otherUser?.fullName || 'New message'}`, {
+            body: newMessage.messageType === 'image' ? '📷 Image' : (newMessage.message?.substring(0, 100) || ''),
+            icon: otherUser?.avatar,
           });
         }
       }
@@ -138,34 +157,33 @@ function Home() {
   }, []);
 
   // Mobile layout: dedicated full-screen screens
-  if (isMobile) {
-    if (showMobileChat) {
-      return (
-        <MessageContainer isMobile={true} onBack={() => setShowMobileChat(false)} />
-      );
-    }
-    return (
-      <UserSidebar isMobile={true} onSelectUser={() => setShowMobileChat(true)} />
+  const content = isMobile
+    ? (showMobileChat
+      ? <MessageContainer isMobile={true} onBack={() => setShowMobileChat(false)} />
+      : <UserSidebar isMobile={true} onSelectUser={() => setShowMobileChat(true)} />)
+    : (
+      <div className='flex h-screen bg-[var(--bg-primary)] overflow-hidden'>
+        <div
+          className={`${showMobileChat ? 'hidden' : 'flex'}
+            lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0`}
+        >
+          <UserSidebar onSelectUser={() => setShowMobileChat(true)} />
+        </div>
+
+        <div
+          className={`${!showMobileChat ? 'hidden' : 'flex'}
+            lg:flex flex-1 min-w-0`}
+        >
+          <MessageContainer onBack={() => setShowMobileChat(false)} />
+        </div>
+      </div>
     );
-  }
 
-  // Desktop layout: exact original, untouched
   return (
-    <div className='flex h-screen bg-[var(--bg-primary)] overflow-hidden'>
-      <div
-        className={`${showMobileChat ? 'hidden' : 'flex'}
-          lg:flex w-full lg:w-80 xl:w-96 flex-shrink-0`}
-      >
-        <UserSidebar onSelectUser={() => setShowMobileChat(true)} />
-      </div>
-
-      <div
-        className={`${!showMobileChat ? 'hidden' : 'flex'}
-          lg:flex flex-1 min-w-0`}
-      >
-        <MessageContainer onBack={() => setShowMobileChat(false)} />
-      </div>
-    </div>
+    <CallProvider>
+      {content}
+      <CallUI />
+    </CallProvider>
   )
 }
 

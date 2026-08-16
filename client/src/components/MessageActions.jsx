@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { editMessageThunk, deleteMessageThunk } from "../store/slice/message/message.thunk";
 import ReactionPicker from "./ReactionPicker";
 
-function MessageActions({ message, isSender, onReply, onStartEdit }) {
+function MessageActions({ message, isSender, onReply, onStartEdit, isMobile }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [menuAbove, setMenuAbove] = useState(true);
@@ -71,7 +71,7 @@ function MessageActions({ message, isSender, onReply, onStartEdit }) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-        className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all duration-200 text-gray-500 hover:text-white"
+        className={`p-1 rounded-lg hover:bg-white/10 transition-all duration-200 text-gray-500 hover:text-white ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
       >
         <BsThreeDotsVertical className="w-3.5 h-3.5" />
       </button>

@@ -28,12 +28,6 @@ const userSchema = new mongoose.Schema({
     avatar:{
         type: String
     },
-    emailOTP:{
-        type: String
-    },
-    otpExpiry:{
-        type: Date
-    },
     lastSeen:{
         type: Date
     }

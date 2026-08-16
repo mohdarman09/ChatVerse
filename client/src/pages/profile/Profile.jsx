@@ -71,6 +71,7 @@ function Profile() {
 
     setSelectedAvatar(file)
     setAvatarPreview(URL.createObjectURL(file))
+    setAvatarRemoved(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [avatarPreview])
 
@@ -197,7 +198,7 @@ function Profile() {
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative max-w-[680px] mx-auto px-5 sm:px-6 py-10 animate-fade-in">
+      <div className="relative max-w-[680px] mx-auto px-4 sm:px-6 py-6 sm:py-10 animate-fade-in">
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={handleBack}
@@ -214,7 +215,7 @@ function Profile() {
           </div>
         </div>
 
-        <div className="rounded-[20px] glass-card p-8 space-y-6">
+        <div className="rounded-[20px] glass-card p-5 sm:p-8 space-y-6">
           {/* Section header */}
           <div className="flex items-center gap-4 pb-5 border-b border-white/[0.06]">
             <div className="w-9 h-9 rounded-[10px] gradient-primary flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
@@ -342,7 +343,7 @@ function Profile() {
           </button>
         </div>
 
-        <div className="mt-8 rounded-[20px] glass-card p-8 space-y-6">
+        <div className="mt-8 rounded-[20px] glass-card p-5 sm:p-8 space-y-6">
           {/* Section header */}
           <div className="flex items-center gap-4 pb-5 border-b border-white/[0.06]">
             <div className="w-9 h-9 rounded-[10px] gradient-primary flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
@@ -434,7 +435,7 @@ function Profile() {
           </div>
         </div>
 
-        <div className="mt-8 rounded-[20px] glass-card p-8 border border-red-500/20">
+        <div className="mt-8 rounded-[20px] glass-card p-5 sm:p-8 border border-red-500/20">
           {/* Section header */}
           <div className="flex items-center gap-4 pb-5 border-b border-red-500/10">
             <div className="w-9 h-9 rounded-[10px] bg-red-500/15 flex items-center justify-center shadow-lg shadow-red-500/10 flex-shrink-0">
@@ -477,7 +478,7 @@ function Profile() {
           onClick={() => setShowDeleteModal(false)}
         >
           <div
-            className="rounded-[20px] glass-card p-8 max-w-md w-full animate-scale-in"
+            className="rounded-[20px] glass-card p-5 sm:p-8 max-w-md w-full animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-4 pb-5 border-b border-white/[0.06] mb-6">
