@@ -23,7 +23,7 @@ const setCookie = (res, token) => {
 export const register = asyncHandler(async (req, res, next) => {
     const { fullName, username, password, gender, avatar } = req.body;
 
-    if (!fullName?.trim() || !username?.trim() || !password) {
+    if (!fullName?.trim() || !username?.trim() || !password || !gender?.trim()) {
         return next(new errorHandler("All fields are required", 400));
     }
 

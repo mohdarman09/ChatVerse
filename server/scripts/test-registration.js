@@ -122,6 +122,19 @@ try {
   const r1 = await post(`${base}/register`, { fullName: "Test One", username: "testone", password: "1234", gender: "male" });
   record("1. Register (4-char password)", r1.status === 201 && r1.data?.success === true, `status=${r1.status} msg=${r1.data?.message}`);
 
+  // Scenario: each required field missing -> "All fields are required"
+  const m1 = await post(`${base}/register`, { username: "missfull", password: "abcd", gender: "male" });
+  record("M1. Missing fullName rejected", m1.status === 400 && m1.data?.message === "All fields are required", `status=${m1.status} msg=${m1.data?.message}`);
+  const m2 = await post(`${base}/register`, { fullName: "Miss User", password: "abcd", gender: "male" });
+  record("M2. Missing username rejected", m2.status === 400 && m2.data?.message === "All fields are required", `status=${m2.status} msg=${m2.data?.message}`);
+  const m3 = await post(`${base}/register`, { fullName: "Miss User", username: "misspass", gender: "male" });
+  record("M3. Missing password rejected", m3.status === 400 && m3.data?.message === "All fields are required", `status=${m3.status} msg=${m3.data?.message}`);
+  const m4 = await post(`${base}/register`, { fullName: "Miss User", username: "missgender", password: "abcd" });
+  record("M4. Missing gender rejected", m4.status === 400 && m4.data?.message === "All fields are required", `status=${m4.status} msg=${m4.data?.message}`);
+
+  // Scenario: password never returned in the response
+  record("5b. Password not returned in response", r1.data?.responseData?.user?.password === undefined, `keys=${Object.keys(r1.data?.responseData?.user || {}).join(",")}`);
+
   // Scenario 5/10: new user without email -> success (r1 already had no email)
   record("5/10. Register without email", r1.status === 201, `user has no email field in response`);
 
