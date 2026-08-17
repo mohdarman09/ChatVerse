@@ -51,8 +51,8 @@ const CallUI = () => {
               }}
             />
           </div>
-          <h3 className="text-lg font-semibold text-white truncate">{name}</h3>
-          <p className="text-sm text-gray-400 mt-1">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] truncate">{name}</h3>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
             {status === 'connected' && elapsed > 0 ? `${statusText} · ${fmtTime(elapsed)}` : statusText}
           </p>
 

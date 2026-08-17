@@ -10,19 +10,17 @@ import { logoutUserThunk, searchUsersThunk } from "../../store/slice/user/user.t
 import { getConversationsThunk } from "../../store/slice/message/message.thunk";
 
 const EmptyState = ({ isMobile }) => (
-  <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 text-center animate-fade-in">
-    <div className="relative mb-6">
-      <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-150" aria-hidden="true" />
-      <div className="relative w-20 h-20 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/10">
-        <RiMessage2Fill className={`text-primary ${isMobile ? 'w-9 h-9' : 'w-8 h-8'}`} />
+  <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center animate-fade-in">
+    <div className="relative mb-4">
+      <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl scale-125" aria-hidden="true" />
+      <div className="relative w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/10">
+        <RiMessage2Fill className={`text-primary ${isMobile ? 'w-7 h-7' : 'w-6 h-6'}`} />
       </div>
-      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary/40 blur-sm" aria-hidden="true" />
     </div>
-    <h3 className="text-lg font-bold text-white">Start a conversation</h3>
-    <p className="text-sm text-gray-500 mt-1.5 max-w-[240px] leading-relaxed">
+    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Start a conversation</h3>
+    <p className="text-xs font-normal text-[var(--text-secondary)] mt-1 max-w-[220px] leading-relaxed">
       Search for someone and send your first message.
     </p>
-    <p className="text-xs text-gray-600 mt-3">Your recent conversations will appear here.</p>
   </div>
 );
 
@@ -99,7 +97,7 @@ function UserSidebar({ onSelectUser, isMobile }) {
     setLogoutLoading(false);
     setShowLogoutModal(false);
     toast.success("Logout successful");
-  }
+  };
 
   const logoutModal = showLogoutModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -107,31 +105,31 @@ function UserSidebar({ onSelectUser, isMobile }) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => !logoutLoading && setShowLogoutModal(false)}
       />
-      <div className="relative glass-card p-6 w-full max-w-sm animate-fade-in-up">
-        <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20">
-            <IoLogOut className="w-6 h-6 text-red-400" />
+      <div className="relative glass-card p-5 w-full max-w-xs animate-fade-in-up border border-[var(--border-color)]">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--danger-bg)] border border-[var(--danger-border)]">
+            <IoLogOut className="w-5 h-5 text-[var(--danger-text)]" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-white">Logout</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Are you sure you want to logout?</p>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Logout</h2>
+            <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">Are you sure you want to logout?</p>
           </div>
         </div>
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-2.5 mt-5">
           <button
             onClick={() => setShowLogoutModal(false)}
             disabled={logoutLoading}
-            className="glossy-btn glossy-btn-secondary flex-1 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="glossy-btn-secondary flex-1 flex items-center justify-center h-9 rounded-lg font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleLogout}
             disabled={logoutLoading}
-            className="glossy-btn glossy-btn-danger flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="glossy-btn glossy-btn-danger flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {logoutLoading ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               "Logout"
             )}
@@ -169,7 +167,7 @@ function UserSidebar({ onSelectUser, isMobile }) {
   const profileSection = (
     <div className="flex items-center gap-2.5">
       <div className="relative flex-shrink-0">
-        <div className="overflow-hidden rounded-full w-11 h-11 ring-2 ring-primary/30">
+        <div className="overflow-hidden rounded-full w-9 h-9 ring-1 ring-primary/30">
           <Avatar
             src={userProfile?.profile?.avatar}
             name={userProfile?.profile?.fullName}
@@ -177,28 +175,28 @@ function UserSidebar({ onSelectUser, isMobile }) {
             className="w-full h-full"
           />
         </div>
-        <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
+        <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
       </div>
       <div className="flex-1 min-w-0">
-        <h2 className="text-sm font-medium text-white truncate">{userProfile?.profile?.fullName}</h2>
-        <p className="text-[11px] text-green-400/80 truncate">Online</p>
+        <h2 className="text-xs font-medium text-[var(--text-primary)] truncate">{userProfile?.profile?.fullName}</h2>
+        <p className="text-[10px] text-green-500 font-normal truncate">Online</p>
       </div>
       <div className="flex items-center flex-shrink-0 gap-0.5">
         <button
           onClick={() => navigate('/profile')}
-          className="flex items-center justify-center text-gray-400 transition-all w-10 h-10 rounded-xl hover:text-primary hover:bg-white/5"
+          className="flex items-center justify-center text-[var(--text-secondary)] transition-all w-8 h-8 rounded-lg hover:text-primary hover:bg-[var(--user-hover-bg)]"
           title="Profile Settings"
           aria-label="Profile Settings"
         >
-          <IoSettingsOutline className="w-5 h-5" />
+          <IoSettingsOutline className="w-4 h-4" />
         </button>
         <button
           onClick={() => setShowLogoutModal(true)}
-          className="flex items-center justify-center text-gray-400 transition-all w-10 h-10 rounded-xl hover:text-red-400 hover:bg-red-500/10"
+          className="flex items-center justify-center text-[var(--text-secondary)] transition-all w-8 h-8 rounded-lg hover:text-[var(--danger-text)] hover:bg-[var(--danger-bg)]"
           title="Logout"
           aria-label="Logout"
         >
-          <IoLogOut className="w-5 h-5" />
+          <IoLogOut className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -206,12 +204,12 @@ function UserSidebar({ onSelectUser, isMobile }) {
 
   const searchBar = (
     <div className="relative group">
-      <IoSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
+      <IoSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] group-focus-within:text-primary transition-colors duration-150" />
       <input
         onChange={(e) => setSearchValue(e.target.value)}
         value={searchValue}
         type="search"
-        className="w-full py-3 pl-10 pr-4 text-sm text-white placeholder-gray-500 transition-all border bg-white/5 border-white/10 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+        className="w-full py-2 pl-9 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-all border bg-[var(--bg-input)] border-[var(--border-input)] rounded-lg focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
         placeholder="Search or start a new chat"
       />
     </div>
@@ -220,12 +218,12 @@ function UserSidebar({ onSelectUser, isMobile }) {
   const listContent = showEmptyState ? (
     <EmptyState isMobile={isMobile} />
   ) : showNoResults ? (
-    <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 text-center animate-fade-in">
-      <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mb-4">
-        <IoSearch className="w-6 h-6 text-gray-600" />
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center animate-fade-in">
+      <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-color)] flex items-center justify-center mb-3 text-[var(--text-muted)]">
+        <IoSearch className="w-4 h-4" />
       </div>
-      <h3 className="text-base font-semibold text-white">No users found</h3>
-      <p className="text-sm text-gray-500 mt-1 max-w-[240px] leading-relaxed">
+      <h3 className="text-xs font-medium text-[var(--text-primary)]">No users found</h3>
+      <p className="text-[11px] font-normal text-[var(--text-secondary)] mt-0.5 max-w-[200px] leading-relaxed">
         No one matches "{searchValue.trim()}".
       </p>
     </div>
@@ -233,14 +231,14 @@ function UserSidebar({ onSelectUser, isMobile }) {
     <>
       {conversationRows}
       {isSearching && searchResultsUsers.length > 0 && (
-        <p className={`text-[11px] font-medium text-gray-500 uppercase tracking-wider ${isMobile ? 'px-4 pt-3 pb-1' : 'px-3 pt-3 pb-1'}`}>
+        <p className={`text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider ${isMobile ? 'px-4 pt-2.5 pb-1' : 'px-3 pt-2.5 pb-1'}`}>
           Search results
         </p>
       )}
       {searchResultRows}
       {isSearching && searching && conversationRows.length === 0 && searchResultsUsers.length === 0 && (
-        <div className="flex justify-center py-8">
-          <div className="w-5 h-5 border-2 border-white/15 border-t-primary rounded-full animate-spin" />
+        <div className="flex justify-center py-6">
+          <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
       )}
     </>
@@ -253,14 +251,14 @@ function UserSidebar({ onSelectUser, isMobile }) {
         <div className="w-full h-dvh flex flex-col bg-[var(--bg-primary)]">
           {/* Top section - fixed */}
           <div className="flex-shrink-0 safe-top-mobile">
-            <div className="flex items-center gap-3 px-4 pt-3 pb-1 border-b border-white/[0.06]">
-              <div className="p-1.5 rounded-xl gradient-primary flex-shrink-0">
-                <RiMessage2Fill className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2.5 px-3.5 pt-2.5 pb-1 border-b border-[var(--border-subtle)]">
+              <div className="p-1.5 rounded-lg gradient-primary flex-shrink-0 shadow-sm">
+                <RiMessage2Fill className="w-4 h-4 text-white" />
               </div>
-              <h1 className="text-lg font-bold gradient-text">ChatVerse</h1>
+              <h1 className="text-base font-semibold gradient-text">ChatVerse</h1>
             </div>
 
-            <div className="px-4 pt-2 pb-3">
+            <div className="px-3.5 pt-2 pb-2.5">
               {searchBar}
             </div>
           </div>
@@ -270,9 +268,11 @@ function UserSidebar({ onSelectUser, isMobile }) {
             {listContent}
           </div>
 
-          {/* Bottom section - fixed at very bottom */}
-          <div className="flex-shrink-0 border-t border-white/[0.06] bg-[var(--bg-secondary)] px-3 py-2.5 safe-bottom-mobile">
-            {profileSection}
+          {/* Bottom section - comfortably positioned with balanced breathing room */}
+          <div className="flex-shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-3.5 pt-2.5 pb-2.5 safe-bottom-sidebar">
+            <div className="rounded-xl p-1 transition-colors duration-150 hover:bg-[var(--user-hover-bg)]">
+              {profileSection}
+            </div>
           </div>
         </div>
         {logoutModal}
@@ -283,24 +283,24 @@ function UserSidebar({ onSelectUser, isMobile }) {
   // Desktop layout
   return (
     <>
-      <div className="flex flex-col w-full h-full border-r glass border-white/5">
-        <div className="px-4 pt-4 pb-3">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 shadow-lg rounded-xl gradient-primary shadow-primary/25 flex-shrink-0">
-              <RiMessage2Fill className="w-5 h-5 text-white" />
+      <div className="flex flex-col w-full h-full border-r glass border-[var(--border-color)]">
+        <div className="px-3.5 pt-3 pb-2.5">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="p-1.5 shadow-md rounded-lg gradient-primary flex-shrink-0">
+              <RiMessage2Fill className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl font-bold gradient-text">ChatVerse</h1>
+            <h1 className="text-base font-semibold gradient-text">ChatVerse</h1>
           </div>
 
           {searchBar}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-custom min-h-0 flex flex-col">
+        <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 scrollbar-custom min-h-0 flex flex-col">
           {listContent}
         </div>
 
-        <div className="px-3 py-2.5 border-t border-white/5">
-          <div className="rounded-xl p-2 transition-all duration-300 hover:bg-white/5">
+        <div className="px-3.5 py-2.5 border-t border-[var(--border-color)]">
+          <div className="rounded-xl p-1 transition-colors duration-150 hover:bg-[var(--user-hover-bg)]">
             {profileSection}
           </div>
         </div>

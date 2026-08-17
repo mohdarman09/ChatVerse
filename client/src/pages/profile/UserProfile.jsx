@@ -103,9 +103,9 @@ function UserProfile() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] p-4">
-        <div className="flex flex-col items-center gap-3 animate-fade-in">
-          <div className="w-9 h-9 border-2 rounded-full border-primary/30 border-t-primary animate-spin" />
-          <span className="text-sm text-gray-500">Loading user profile...</span>
+        <div className="flex flex-col items-center gap-2.5 animate-fade-in">
+          <div className="w-7 h-7 border-2 rounded-full border-primary/30 border-t-primary animate-spin" />
+          <span className="text-xs font-normal text-[var(--text-secondary)]">Loading user profile...</span>
         </div>
       </div>
     );
@@ -123,23 +123,23 @@ function UserProfile() {
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] p-4">
-        <div className="glass-card p-6 sm:p-8 max-w-sm w-full text-center space-y-4 animate-scale-in">
-          <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-400">
+        <div className="glass-card p-5 sm:p-6 max-w-xs w-full text-center space-y-3.5 animate-scale-in border border-[var(--border-color)]">
+          <div className="w-12 h-12 rounded-xl bg-[var(--danger-bg)] border border-[var(--danger-border)] flex items-center justify-center mx-auto text-[var(--danger-text)]">
             {errorStatus === 400 || errorStatus === 404 ? (
-              <IoBan className="w-7 h-7" />
+              <IoBan className="w-6 h-6" />
             ) : (
-              <IoAlertCircleOutline className="w-7 h-7" />
+              <IoAlertCircleOutline className="w-6 h-6" />
             )}
           </div>
-          <h2 className="text-lg font-bold text-white">{errorTitle}</h2>
-          <p className="text-sm text-gray-400 leading-relaxed">
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">{errorTitle}</h2>
+          <p className="text-xs font-normal text-[var(--text-secondary)] leading-relaxed">
             {errorMessage}
           </p>
           <button
             onClick={handleBack}
-            className="glossy-btn w-full flex items-center justify-center gap-2 mt-4"
+            className="glossy-btn w-full flex items-center justify-center gap-1.5 h-9 text-xs font-medium mt-3"
           >
-            <IoArrowBack className="w-4 h-4" />
+            <IoArrowBack className="w-3.5 h-3.5" />
             Back to Chats
           </button>
         </div>
@@ -158,31 +158,31 @@ function UserProfile() {
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative max-w-[540px] w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 animate-fade-in flex-1">
+      <div className="relative max-w-[500px] w-full mx-auto px-4 sm:px-6 safe-top-page pb-10 animate-fade-in flex-1">
         {/* Navigation Top Bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={handleBack}
-            className="p-2.5 text-gray-400 transition-all duration-300 rounded-xl hover:bg-white/5 hover:text-white"
+            className="p-2 text-[var(--text-secondary)] transition-colors duration-150 rounded-lg hover:bg-[var(--btn-secondary-bg)] hover:text-[var(--text-primary)]"
             aria-label="Go Back"
           >
             <IoArrowBack className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 shadow-lg rounded-xl gradient-primary shadow-primary/20">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 shadow-sm rounded-lg gradient-primary flex-shrink-0">
               <RiMessage2Fill className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-lg font-bold gradient-text">User Profile</h1>
+            <h1 className="text-base font-semibold gradient-text">User Profile</h1>
           </div>
-          <div className="w-10" />
+          <div className="w-9" />
         </div>
 
         {/* Profile Card */}
-        <div className="rounded-[24px] glass-card p-6 sm:p-8 space-y-6 shadow-2xl border border-white/10">
+        <div className="rounded-2xl glass-card p-5 sm:p-6 space-y-4 shadow-sm border border-[var(--border-color)]">
           {/* Avatar and Basic Info */}
-          <div className="flex flex-col items-center text-center space-y-3">
+          <div className="flex flex-col items-center text-center space-y-2.5">
             <div className="relative">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-[3px] ring-primary/40 ring-offset-[3px] ring-offset-[var(--bg-primary)] shadow-2xl shadow-primary/20">
+              <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden ring-2 ring-primary/40 ring-offset-2 ring-offset-[var(--bg-primary)] shadow-sm">
                 <Avatar
                   src={targetUser.avatar}
                   name={targetUser.fullName}
@@ -192,27 +192,27 @@ function UserProfile() {
               </div>
               {isUserOnline && (
                 <div
-                  className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-[var(--bg-primary)] shadow-md"
+                  className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--bg-primary)] shadow-sm"
                   title="Online"
                 />
               )}
             </div>
 
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-white tracking-tight">{targetUser.fullName}</h2>
-              <p className="text-sm font-medium text-primary/90">@{targetUser.username}</p>
+            <div className="space-y-0.5">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">{targetUser.fullName}</h2>
+              <p className="text-xs font-normal text-primary">@{targetUser.username}</p>
             </div>
 
             {/* Online Status Badge */}
-            <div className="pt-1">
+            <div className="pt-0.5">
               {isUserOnline ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-green-500/10 text-green-500 border border-green-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   Online Now
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-400 border border-white/10">
-                  <span className="w-2 h-2 rounded-full bg-gray-500" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-[var(--status-badge-offline-bg)] text-[var(--status-badge-offline-text)] border border-[var(--status-badge-offline-border)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />
                   Offline
                 </span>
               )}
@@ -220,29 +220,29 @@ function UserProfile() {
           </div>
 
           {/* Details Section */}
-          <div className="pt-4 border-t border-white/[0.06] space-y-3">
+          <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
             {targetUser.gender && (
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                    <FaVenusMars className="w-4 h-4" />
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <FaVenusMars className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-xs font-medium text-gray-400">Gender</span>
+                  <span className="text-xs font-normal text-[var(--text-secondary)]">Gender</span>
                 </div>
-                <span className="text-xs font-semibold text-white/90 capitalize">
+                <span className="text-xs font-medium text-[var(--text-primary)] capitalize">
                   {targetUser.gender}
                 </span>
               </div>
             )}
 
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  <RiCalendarLine className="w-4 h-4" />
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <RiCalendarLine className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-medium text-gray-400">Member Since</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)]">Member Since</span>
               </div>
-              <span className="text-xs font-semibold text-white/90">
+              <span className="text-xs font-medium text-[var(--text-primary)]">
                 {formatJoinDate(targetUser.createdAt)}
               </span>
             </div>
@@ -250,20 +250,20 @@ function UserProfile() {
 
           {/* Block Status Warning if Blocked */}
           {isBlocked && (
-            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 animate-fade-in">
-              <IoBan className="w-5 h-5 text-red-400 flex-shrink-0" />
-              <p className="text-xs text-red-300 leading-relaxed">
+            <div className="p-3 rounded-xl bg-[var(--danger-bg)] border border-[var(--danger-border)] flex items-center gap-2.5 animate-fade-in">
+              <IoBan className="w-4 h-4 text-[var(--danger-text)] flex-shrink-0" />
+              <p className="text-xs text-[var(--danger-text)] font-normal leading-relaxed">
                 You have blocked this user. They cannot message you or call you.
               </p>
             </div>
           )}
 
           {/* Actions */}
-          <div className="pt-2 space-y-3">
+          <div className="pt-1 space-y-2">
             {isOwnProfile ? (
               <button
                 onClick={() => navigate('/profile')}
-                className="glossy-btn w-full flex items-center justify-center gap-2 text-sm font-semibold h-11"
+                className="glossy-btn w-full flex items-center justify-center gap-1.5 text-xs font-medium h-9"
               >
                 Edit My Profile
               </button>
@@ -272,9 +272,9 @@ function UserProfile() {
                 <button
                   onClick={handleStartChat}
                   disabled={isBlocked}
-                  className="glossy-btn w-full flex items-center justify-center gap-2 text-sm font-semibold h-11 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  className="glossy-btn w-full flex items-center justify-center gap-1.5 text-xs font-medium h-9 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
-                  <IoChatbubbleEllipsesOutline className="w-5 h-5" />
+                  <IoChatbubbleEllipsesOutline className="w-4 h-4" />
                   Send Message
                 </button>
 
@@ -282,13 +282,13 @@ function UserProfile() {
                   <button
                     onClick={handleToggleBlock}
                     disabled={actionLoading}
-                    className="w-full h-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-[0.98] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                    className="w-full h-9 rounded-xl bg-[var(--btn-secondary-bg)] border border-[var(--btn-secondary-border)] hover:bg-[var(--btn-secondary-hover)] active:scale-[0.98] text-[var(--text-primary)] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                   >
                     {actionLoading ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
                     ) : (
                       <>
-                        <IoCheckmarkCircleOutline className="w-5 h-5 text-green-400" />
+                        <IoCheckmarkCircleOutline className="w-4 h-4 text-green-500" />
                         Unblock User
                       </>
                     )}
@@ -297,9 +297,9 @@ function UserProfile() {
                   <button
                     onClick={() => setShowBlockModal(true)}
                     disabled={actionLoading}
-                    className="w-full h-11 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="w-full h-9 rounded-xl bg-[var(--danger-bg)] border border-[var(--danger-border)] hover:bg-[var(--danger-hover)] text-[var(--danger-text)] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors active:scale-[0.98] disabled:opacity-50"
                   >
-                    <IoBan className="w-4 h-4" />
+                    <IoBan className="w-3.5 h-3.5" />
                     Block User
                   </button>
                 )}
@@ -316,33 +316,33 @@ function UserProfile() {
           onClick={() => setShowBlockModal(false)}
         >
           <div
-            className="rounded-[20px] glass-card p-6 sm:p-7 max-w-sm w-full space-y-4 animate-scale-in border border-red-500/20"
+            className="rounded-2xl glass-card p-5 sm:p-6 max-w-xs w-full space-y-3.5 animate-scale-in border border-[var(--danger-border)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 text-red-400">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-                <IoBan className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 text-[var(--danger-text)]">
+              <div className="w-8 h-8 rounded-lg bg-[var(--danger-bg)] flex items-center justify-center flex-shrink-0">
+                <IoBan className="w-4 h-4 text-[var(--danger-text)]" />
               </div>
-              <h3 className="text-base font-bold text-white">Block {targetUser.fullName}?</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Block {targetUser.fullName}?</h3>
             </div>
-            <p className="text-xs leading-relaxed text-gray-400">
+            <p className="text-xs font-normal leading-relaxed text-[var(--text-secondary)]">
               Blocked users cannot send you messages or start audio calls. You can unblock them at any time from their profile.
             </p>
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2.5 pt-1">
               <button
                 onClick={() => setShowBlockModal(false)}
                 disabled={actionLoading}
-                className="flex-1 h-10 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-xs font-medium hover:bg-white/10 transition-all"
+                className="flex-1 h-9 rounded-lg bg-[var(--btn-secondary-bg)] border border-[var(--btn-secondary-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium hover:bg-[var(--btn-secondary-hover)] transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleToggleBlock}
                 disabled={actionLoading}
-                className="flex-1 h-10 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 flex items-center justify-center gap-1.5"
+                className="flex-1 h-9 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-medium hover:from-red-600 hover:to-red-700 transition-all shadow-md shadow-red-500/25 flex items-center justify-center gap-1"
               >
                 {actionLoading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   'Confirm Block'
                 )}

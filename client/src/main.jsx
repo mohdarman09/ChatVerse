@@ -11,6 +11,7 @@ import { store } from './store/store.js'
 import { Provider } from 'react-redux'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { injectStore } from './components/utilities/axiosinstance.js'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 
 injectStore(store);
 
@@ -48,7 +49,9 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>
-    <App />
-    <RouterProvider router={router} />
+    <ThemeProvider>
+      <App />
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </Provider>
 )

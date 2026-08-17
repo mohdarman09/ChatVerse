@@ -71,7 +71,8 @@ function MessageActions({ message, isSender, onReply, onStartEdit, isMobile }) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-        className={`p-1 rounded-lg hover:bg-white/10 transition-all duration-200 text-gray-500 hover:text-white ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+        className={`p-1 rounded-lg hover:bg-[var(--user-hover-bg)] transition-colors duration-150 text-[var(--text-muted)] hover:text-[var(--text-primary)] ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+        aria-label="Message options"
       >
         <BsThreeDotsVertical className="w-3.5 h-3.5" />
       </button>
@@ -80,23 +81,27 @@ function MessageActions({ message, isSender, onReply, onStartEdit, isMobile }) {
         <div
           ref={dropdownRef}
           className={`
-            absolute z-50 min-w-[220px] py-1.5 rounded-xl glass shadow-xl border border-white/10
-            ${menuAbove ? 'bottom-full mb-2' : 'top-0 mt-2'}
+            absolute z-50 min-w-[190px] p-1.5 rounded-xl shadow-2xl animate-scale-in
+            ${menuAbove ? 'bottom-full mb-1.5' : 'top-0 mt-1.5'}
             ${isSender ? 'right-0' : 'left-0'}
-            animate-scale-in
           `}
           style={{
+            backgroundColor: "var(--popup-bg)",
+            border: "1px solid var(--popup-border)",
+            boxShadow: "var(--popup-shadow)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             transformOrigin: isSender
               ? (menuAbove ? 'bottom right' : 'top right')
               : (menuAbove ? 'bottom left' : 'top left')
           }}
         >
-          <div className="relative pb-1 mb-1 border-b border-white/5">
+          <div className="relative pb-1 mb-1 border-b border-[var(--border-subtle)]">
             <button
               onClick={(e) => { e.stopPropagation(); setShowReactions(!showReactions); }}
-              className="flex items-center gap-3 w-full px-3 py-2 text-xs text-gray-300 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap"
+              className="flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] rounded-lg hover:bg-[var(--popup-hover)] transition-colors whitespace-nowrap"
             >
-              <BsEmojiSmile className="w-3.5 h-3.5 flex-shrink-0" />
+              <BsEmojiSmile className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
               React
             </button>
             {showReactions && (
@@ -106,28 +111,43 @@ function MessageActions({ message, isSender, onReply, onStartEdit, isMobile }) {
             )}
           </div>
 
-          <button onClick={handleReply} className="flex items-center gap-3 w-full px-3 py-2 text-xs text-gray-300 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap">
-            <BsReply className="w-3.5 h-3.5 flex-shrink-0" />
+          <button
+            onClick={handleReply}
+            className="flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] rounded-lg hover:bg-[var(--popup-hover)] transition-colors whitespace-nowrap"
+          >
+            <BsReply className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-secondary)]" />
             Reply
           </button>
-          <button onClick={handleCopy} className="flex items-center gap-3 w-full px-3 py-2 text-xs text-gray-300 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap">
-            <BsCopy className="w-3.5 h-3.5 flex-shrink-0" />
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] rounded-lg hover:bg-[var(--popup-hover)] transition-colors whitespace-nowrap"
+          >
+            <BsCopy className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-secondary)]" />
             Copy
           </button>
           {canEdit && (
-            <button onClick={handleEdit} className="flex items-center gap-3 w-full px-3 py-2 text-xs text-gray-300 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap">
-              <BsPencil className="w-3.5 h-3.5 flex-shrink-0" />
+            <button
+              onClick={handleEdit}
+              className="flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] rounded-lg hover:bg-[var(--popup-hover)] transition-colors whitespace-nowrap"
+            >
+              <BsPencil className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-secondary)]" />
               Edit
             </button>
           )}
 
           {isSender && (
-            <div className="pt-1 mt-1 border-t border-white/5">
-              <button onClick={handleDeleteForMe} className="flex items-center gap-3 w-full px-3 py-2 text-xs text-red-400 rounded-lg hover:bg-red-500/10 transition-all whitespace-nowrap">
+            <div className="pt-1 mt-1 border-t border-[var(--border-subtle)]">
+              <button
+                onClick={handleDeleteForMe}
+                className="flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium text-[var(--danger-text)] rounded-lg hover:bg-[var(--danger-bg)] transition-colors whitespace-nowrap"
+              >
                 <BsTrash className="w-3.5 h-3.5 flex-shrink-0" />
                 Delete for me
               </button>
-              <button onClick={handleDeleteForEveryone} className="flex items-center gap-3 w-full px-3 py-2 text-xs text-red-400 rounded-lg hover:bg-red-500/10 transition-all whitespace-nowrap">
+              <button
+                onClick={handleDeleteForEveryone}
+                className="flex items-center gap-2.5 w-full px-2.5 py-1.5 text-xs font-medium text-[var(--danger-text)] rounded-lg hover:bg-[var(--danger-bg)] transition-colors whitespace-nowrap"
+              >
                 <BsTrash className="w-3.5 h-3.5 flex-shrink-0" />
                 Delete for everyone
               </button>

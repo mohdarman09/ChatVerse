@@ -1,124 +1,198 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { IoIosSend } from "react-icons/io";
-import { BsReply, BsPencil, BsX, BsPaperclip } from "react-icons/bs";
+import { IoSend } from "react-icons/io5";
+import { BsPaperclip, BsPencil, BsReply, BsX } from "react-icons/bs";
 import { useDispatch, useSelector } from 'react-redux';
+import { sendMessageThunk, editMessageThunk } from '../../store/slice/message/message.thunk';
 import toast from 'react-hot-toast';
-import { sendMessageThunk } from '../../store/slice/message/message.thunk';
 import AttachmentSheet from '../../components/AttachmentSheet';
 import CameraScreen from '../../components/CameraScreen';
 
-const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isMobile }) => {
-
-    const dispatch = useDispatch();
-    const { selectedUser, userProfile } = useSelector(state => state.userReducer);
-    const { buttonLoading } = useSelector(state => state.messageReducer);
-    const { socket } = useSelector(state => state.socketReducer);
+function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCancelEdit }) {
     const [message, setMessage] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [imageUploading, setImageUploading] = useState(false);
     const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
     const [cameraOpen, setCameraOpen] = useState(false);
-    const typingTimeoutRef = useRef(null);
-    const isTypingRef = useRef(false);
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
-    // Keep always-fresh refs so cleanup/timeout callbacks never capture stale closures
-    const socketRef = useRef(socket);
-    const selectedUserRef = useRef(selectedUser);
-    useEffect(() => { socketRef.current = socket; }, [socket]);
-    useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+    const typingTimeoutRef = useRef(null);
+    const isTypingRef = useRef(false);
 
+    const dispatch = useDispatch();
+    const { selectedUser } = useSelector(state => state.userReducer);
+    const { buttonLoading } = useSelector(state => state.messageReducer);
+    const { socket } = useSelector(state => state.socketReducer);
+
+    // Auto-focus and prefill input when editing
     useEffect(() => {
         if (editingMessage) {
-            setMessage(editingMessage.message);
+            setMessage(editingMessage.message || "");
+            inputRef.current?.focus();
         }
     }, [editingMessage]);
 
+    // Auto-focus when replying
+    useEffect(() => {
+        if (replyTo) {
+            inputRef.current?.focus();
+        }
+    }, [replyTo]);
+
+    // Handle typing indicator
+    const handleTyping = useCallback(() => {
+        if (!socket || !selectedUser?._id) return;
+
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            socket.emit("typing", { recieverId: selectedUser._id });
+        }
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            isTypingRef.current = false;
+            socket.emit("stopTyping", { recieverId: selectedUser._id });
+        }, 2000);
+    }, [socket, selectedUser]);
+
+    const stopTypingImmediate = useCallback(() => {
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        if (isTypingRef.current && socket && selectedUser?._id) {
+            isTypingRef.current = false;
+            socket.emit("stopTyping", { recieverId: selectedUser._id });
+        }
+    }, [socket, selectedUser]);
+
+    // Clean up typing on unmount
+    useEffect(() => {
+        return () => {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        };
+    }, []);
+
+    // Clean up object URLs
     useEffect(() => {
         return () => {
             if (imagePreview) URL.revokeObjectURL(imagePreview);
         };
     }, [imagePreview]);
 
-    // Emit stop-typing using always-fresh refs — safe to call from timeout callbacks
-    const emitStopTyping = useCallback(() => {
-        const s = socketRef.current;
-        const u = selectedUserRef.current;
-        if (!s || !u?._id) return;
-        isTypingRef.current = false;
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = null;
-        }
-        s.emit("stopTyping", { recieverId: u._id });
-    }, []);
-
-    const emitTyping = useCallback(() => {
-        if (!socket || !selectedUser?._id) return;
-        if (!isTypingRef.current) {
-            isTypingRef.current = true;
-            socket.emit("typing", {
-                recieverId: selectedUser._id,
-                senderName: userProfile?.profile?.fullName || "Someone"
-            });
-        }
-
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => {
-            emitStopTyping();
-        }, 1000);
-    }, [socket, selectedUser, userProfile, emitStopTyping]);
-
-    // Cleanup: emit stopTyping and clear timer on unmount OR conversation change
-    useEffect(() => {
-        return () => {
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-                typingTimeoutRef.current = null;
-            }
-            if (isTypingRef.current) {
-                emitStopTyping();
-            }
-        };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedUser]);
-
     const handleImageSelect = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-            toast.error('Only .jpg, .jpeg, .png, and .webp files are allowed');
-            if (fileInputRef.current) fileInputRef.current.value = '';
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file');
             return;
         }
 
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Image must be less than 5 MB');
-            if (fileInputRef.current) fileInputRef.current.value = '';
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('Image size must be less than 10MB');
             return;
         }
+
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
 
         setSelectedImage(file);
         setImagePreview(URL.createObjectURL(file));
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleGalleryClick = () => {
-        fileInputRef.current?.click();
+    const removeSelectedImage = () => {
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
+        setSelectedImage(null);
+        setImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleCameraSend = (file) => {
-        setSelectedImage(file);
-        setImagePreview(URL.createObjectURL(file));
-        setCameraOpen(false);
+    const handleSendMessage = async () => {
+        const trimmed = message.trim();
+        if (!trimmed && !selectedImage) return;
+        if (buttonLoading || imageUploading) return;
+
+        stopTypingImmediate();
+
+        // Handle edit mode
+        if (editingMessage) {
+            if (!trimmed) {
+                toast.error("Message cannot be empty");
+                return;
+            }
+            await dispatch(editMessageThunk({
+                messageId: editingMessage._id,
+                message: trimmed
+            }));
+            setMessage("");
+            if (onCancelEdit) onCancelEdit();
+            return;
+        }
+
+        // Handle image upload + message send
+        if (selectedImage) {
+            setImageUploading(true);
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedImage);
+                if (trimmed) formData.append('message', trimmed);
+                if (replyTo?._id) formData.append('replyTo', replyTo._id);
+
+                await dispatch(sendMessageThunk({
+                    recieverId: selectedUser?._id,
+                    formData
+                }));
+
+                setMessage("");
+                removeSelectedImage();
+                if (onCancelReply) onCancelReply();
+            } catch {
+                toast.error("Failed to send image");
+            } finally {
+                setImageUploading(false);
+            }
+            return;
+        }
+
+        // Handle text-only message send
+        const messageData = {
+            message: trimmed,
+            messageType: 'text'
+        };
+        if (replyTo?._id) {
+            messageData.replyTo = replyTo._id;
+        }
+
+        setMessage("");
+        if (onCancelReply) onCancelReply();
+
+        await dispatch(sendMessageThunk({
+            recieverId: selectedUser?._id,
+            messageData
+        }));
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    };
+
+    const handleInputChange = (e) => {
+        setMessage(e.target.value);
+        handleTyping();
     };
 
     const handleAttachmentClick = () => {
-        if (editingMessage) return;
-        setShowAttachmentSheet(true);
+        if (isMobile) {
+            setShowAttachmentSheet(true);
+        } else {
+            fileInputRef.current?.click();
+        }
     };
 
     const handleSheetCamera = () => {
@@ -128,96 +202,24 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
 
     const handleSheetGallery = () => {
         setShowAttachmentSheet(false);
-        handleGalleryClick();
+        fileInputRef.current?.click();
     };
 
-    const removeSelectedImage = () => {
+    const handleCameraSend = (file) => {
+        setCameraOpen(false);
         if (imagePreview) URL.revokeObjectURL(imagePreview);
-        setSelectedImage(null);
-        setImagePreview(null);
+        setSelectedImage(file);
+        setImagePreview(URL.createObjectURL(file));
     };
 
-    const handleSendMessage = async () => {
-        if (!message.trim() && !selectedImage) return;
-
-        if (editingMessage) {
-            if (socket) {
-                socket.emit("messageEdited", {
-                    messageId: editingMessage._id,
-                    newMessage: message.trim(),
-                    recieverId: selectedUser?._id,
-                });
-            }
-            if (onCancelEdit) onCancelEdit();
-            setMessage("");
-            if (inputRef.current) inputRef.current.style.height = 'auto';
-            return;
-        }
-
-        if (selectedImage) {
-            setImageUploading(true);
-            try {
-                await dispatch(sendMessageThunk({
-                    recieverId: selectedUser?._id,
-                    message: message.trim(),
-                    replyTo: replyTo ? {
-                        messageId: replyTo.messageId,
-                        message: replyTo.message,
-                        senderId: replyTo.senderId,
-                        senderName: replyTo.senderName
-                    } : null,
-                    image: selectedImage
-                }));
-            } finally {
-                setImageUploading(false);
-                removeSelectedImage();
-            }
-        } else {
-            dispatch(sendMessageThunk({
-                recieverId: selectedUser?._id,
-                message: message.trim(),
-                replyTo: replyTo ? {
-                    messageId: replyTo.messageId,
-                    message: replyTo.message,
-                    senderId: replyTo.senderId,
-                    senderName: replyTo.senderName
-                } : null
-            }))
-        }
-        setMessage("");
-        if (inputRef.current) inputRef.current.style.height = 'auto';
-
-        // Immediately stop the typing indicator when a message is sent
-        if (isTypingRef.current) {
-            emitStopTyping();
-        }
-
+    const handleCancelReply = () => {
         if (onCancelReply) onCancelReply();
-    }
+    };
 
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSendMessage();
-        }
-    }
-
-    const handleInputChange = (e) => {
-        const el = e.target;
-        el.style.height = 'auto';
-        el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
-        setMessage(e.target.value);
-        if (!editingMessage) {
-            if (e.target.value.trim() === '') {
-                // Input became empty: immediately stop typing
-                if (isTypingRef.current) {
-                    emitStopTyping();
-                }
-            } else {
-                emitTyping();
-            }
-        }
-    }
+    const handleCancelEdit = () => {
+        if (onCancelEdit) onCancelEdit();
+        setMessage("");
+    };
 
     const canSend = (message.trim() || selectedImage) && !buttonLoading && !imageUploading;
 
@@ -225,24 +227,24 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
     if (isMobile) {
         return (
             <>
-            <div>
+            <div className="sticky bottom-0 z-20 glass border-t border-[var(--border-color)] safe-bottom-composer">
                 {(replyTo || editingMessage) && (
                     <div className="px-2 pt-2">
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                            <div className={`p-1 rounded flex-shrink-0 ${editingMessage ? 'bg-yellow-500/20 text-yellow-400' : 'bg-primary/20 text-primary'}`}>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+                            <div className={`p-1 rounded flex-shrink-0 ${editingMessage ? 'bg-yellow-500/20 text-yellow-500' : 'bg-primary/20 text-primary'}`}>
                                 {editingMessage ? <BsPencil className="w-3 h-3" /> : <BsReply className="w-3 h-3" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-medium text-primary/80 truncate">
+                                <p className="text-[11px] font-medium text-primary truncate">
                                     {editingMessage ? 'Editing message' : `Reply to ${replyTo?.senderName}`}
                                 </p>
-                                <p className="text-[11px] text-gray-500 truncate">
+                                <p className="text-[10px] font-normal text-[var(--text-muted)] truncate">
                                     {editingMessage ? editingMessage.message : replyTo?.message}
                                 </p>
                             </div>
                             <button
-                                onClick={editingMessage ? onCancelEdit : onCancelReply}
-                                className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
+                                onClick={editingMessage ? handleCancelEdit : handleCancelReply}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)] transition-colors flex-shrink-0"
                             >
                                 <BsX className="w-4 h-4" />
                             </button>
@@ -251,55 +253,55 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
                 )}
                 {imagePreview && (
                     <div className="px-2 pt-2">
-                        <div className="relative inline-block max-w-full rounded-xl overflow-hidden border border-white/10 bg-black/40 shadow-md">
-                            <img src={imagePreview} alt="Preview" className="max-h-32 w-auto object-contain" />
+                        <div className="relative inline-block max-w-full rounded-xl overflow-hidden border border-[var(--border-color)] bg-black/40 shadow-sm">
+                            <img src={imagePreview} alt="Preview" className="max-h-28 w-auto object-contain" />
                             <button
                                 onClick={removeSelectedImage}
-                                className="absolute top-1 right-1 p-1.5 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all"
+                                className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all"
                                 aria-label="Remove image"
                             >
-                                <BsX className="w-4 h-4" />
+                                <BsX className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     </div>
                 )}
-                <div className="px-1.5 pt-1 pb-1.5">
+                <div className="px-2 py-1.5">
                     <div className="flex items-center gap-1.5">
                         <button
                             onClick={handleAttachmentClick}
-                            className="w-11 h-11 flex items-center justify-center rounded-2xl text-gray-400 hover:text-primary hover:bg-white/5 transition-all flex-shrink-0"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-secondary)] hover:text-primary hover:bg-[var(--user-hover-bg)] transition-colors flex-shrink-0"
                             aria-label="Attach photo"
                             disabled={!!editingMessage}
                         >
                             <BsPaperclip className="w-5 h-5" />
                         </button>
-                        <div className="flex-1 min-w-0 flex items-center rounded-2xl bg-white/[0.05] border border-white/[0.08] px-2 py-1">
+                        <div className="flex-1 min-w-0 flex items-center rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] px-2 py-0.5 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
                             <textarea
                                 ref={inputRef}
                                 rows={1}
                                 placeholder={editingMessage ? "Edit message..." : "Message"}
-                                className="flex-1 min-w-0 w-full bg-transparent px-1 py-2 text-[16px] text-white placeholder-gray-500 focus:outline-none resize-none overflow-y-auto max-h-28 leading-snug"
+                                className="flex-1 min-w-0 w-full bg-transparent px-1 py-1.5 text-[14px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none resize-none overflow-y-auto max-h-24 leading-snug"
                                 onChange={handleInputChange}
                                 value={message}
                                 onKeyDown={handleKeyDown}
                             />
                         </div>
                         <button
-                            className={`w-11 h-11 flex items-center justify-center rounded-2xl text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0
                                 ${editingMessage
-                                    ? 'bg-yellow-500 shadow-yellow-500/25'
-                                    : 'gradient-primary shadow-primary/25'
+                                    ? 'bg-yellow-500 text-white shadow-sm shadow-yellow-500/25'
+                                    : 'glossy-icon-btn'
                                 }`}
                             onClick={handleSendMessage}
                             disabled={!canSend}
                             aria-label={editingMessage ? "Save edit" : "Send message"}
                         >
                             {imageUploading || buttonLoading ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : editingMessage ? (
-                                <BsPencil className="w-5 h-5" />
+                                <BsPencil className="w-4 h-4 text-white" />
                             ) : (
-                                <IoIosSend className="w-5 h-5" />
+                                <IoSend className="w-4 h-4 text-white fill-white translate-x-0.5" />
                             )}
                         </button>
                     </div>
@@ -325,24 +327,24 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
     // Desktop layout
     return (
         <>
-        <div className="sticky bottom-0 glass border-t border-white/5">
+        <div className="sticky bottom-0 glass border-t border-[var(--border-color)]">
             {(replyTo || editingMessage) && (
                 <div className="px-3 pt-2">
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                        <div className={`p-1 rounded ${editingMessage ? 'bg-yellow-500/20 text-yellow-400' : 'bg-primary/20 text-primary'}`}>
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] max-w-4xl mx-auto">
+                        <div className={`p-1 rounded flex-shrink-0 ${editingMessage ? 'bg-yellow-500/20 text-yellow-500' : 'bg-primary/20 text-primary'}`}>
                             {editingMessage ? <BsPencil className="w-3 h-3" /> : <BsReply className="w-3 h-3" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-medium text-primary/80">
+                            <p className="text-[11px] font-medium text-primary truncate">
                                 {editingMessage ? 'Editing message' : `Reply to ${replyTo?.senderName}`}
                             </p>
-                            <p className="text-[11px] text-gray-500 truncate">
+                            <p className="text-[10px] font-normal text-[var(--text-muted)] truncate">
                                 {editingMessage ? editingMessage.message : replyTo?.message}
                             </p>
                         </div>
                         <button
-                            onClick={editingMessage ? onCancelEdit : onCancelReply}
-                            className="p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
+                            onClick={editingMessage ? handleCancelEdit : handleCancelReply}
+                            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)] transition-colors flex-shrink-0"
                         >
                             <BsX className="w-4 h-4" />
                         </button>
@@ -351,59 +353,59 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
             )}
             {imagePreview && (
                 <div className="px-3 pt-2">
-                    <div className="relative inline-block rounded-xl overflow-hidden border border-white/10 bg-black/40 shadow-md">
+                    <div className="relative inline-block rounded-xl overflow-hidden border border-[var(--border-color)] bg-black/40 shadow-sm max-w-4xl mx-auto">
                         <img
                             src={imagePreview}
                             alt="Preview"
-                            className="max-h-32 w-auto object-contain"
+                            className="max-h-28 w-auto object-contain"
                         />
                         <button
                             onClick={removeSelectedImage}
                             className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all"
                             aria-label="Remove image"
                         >
-                            <BsX className="w-4 h-4" />
+                            <BsX className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>
             )}
-            <div className="p-3">
+            <div className="p-2.5">
                 <div className="flex items-center gap-2 max-w-4xl mx-auto">
                     <button
                         onClick={handleAttachmentClick}
-                        className="p-2 rounded-xl text-gray-500 hover:text-primary hover:bg-primary/10 transition-all duration-300 flex-shrink-0"
+                        className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-primary hover:bg-[var(--user-hover-bg)] transition-colors flex-shrink-0"
                         aria-label="Attach photo"
                         disabled={!!editingMessage}
                     >
-                        <BsPaperclip className="w-5 h-5" />
+                        <BsPaperclip className="w-4 h-4" />
                     </button>
                     <div className="flex-1 relative">
                         <textarea
                             ref={inputRef}
                             rows={1}
                             placeholder={editingMessage ? "Edit message..." : "Type a message..."}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-300 resize-none overflow-y-auto max-h-32 leading-snug"
+                            className="w-full bg-[var(--bg-input)] border border-[var(--border-input)] rounded-xl pl-3.5 pr-3.5 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all resize-none overflow-y-auto max-h-28 leading-snug"
                             onChange={handleInputChange}
                             value={message}
                             onKeyDown={handleKeyDown}
                         />
                     </div>
                     <button
-                        className={`p-3 rounded-xl text-white shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0
                             ${editingMessage
-                                ? 'bg-yellow-500 hover:shadow-yellow-500/30 shadow-yellow-500/25'
-                                : 'gradient-primary shadow-primary/25 hover:shadow-xl hover:shadow-primary/30'
+                                ? 'bg-yellow-500 text-white shadow-sm shadow-yellow-500/25'
+                                : 'glossy-icon-btn'
                             }`}
                         onClick={handleSendMessage}
                         disabled={!canSend}
                         aria-label={editingMessage ? "Save edit" : "Send message"}
                     >
                         {imageUploading || buttonLoading ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : editingMessage ? (
-                            <BsPencil className="w-5 h-5" />
+                            <BsPencil className="w-4 h-4 text-white" />
                         ) : (
-                            <IoIosSend className="w-5 h-5" />
+                            <IoSend className="w-4 h-4 text-white fill-white translate-x-0.5" />
                         )}
                     </button>
                 </div>

@@ -137,7 +137,7 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[var(--bg-primary)]">
+    <div className="min-h-screen flex items-center justify-center p-4 safe-top-page safe-bottom-mobile relative overflow-hidden bg-[var(--bg-primary)]">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-accent/10 rounded-full blur-[100px]" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-[100px]" />
@@ -151,7 +151,7 @@ function Signup() {
             </div>
             <div>
               <h1 className="text-3xl font-bold gradient-text">Create Account</h1>
-              <p className="text-gray-400 text-sm mt-1">Join ChatVerse today</p>
+              <p className="text-[var(--text-secondary)] text-sm mt-1">Join ChatVerse today</p>
             </div>
           </div>
 
@@ -163,7 +163,7 @@ function Signup() {
                     <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-white/80">
+                      <span className="text-2xl font-bold text-white/90">
                         {getInitials(signupData.fullName || 'User')}
                       </span>
                     </div>
@@ -181,12 +181,12 @@ function Signup() {
                 />
               </div>
             </div>
-            <p className="text-center text-xs text-gray-500 -mt-2">Profile picture (optional)</p>
+            <p className="text-center text-xs text-[var(--text-muted)] -mt-2">Profile picture (optional)</p>
 
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Full Name</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium ml-1">Full Name</label>
               <div className="relative group">
-                <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
+                <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-primary transition-colors duration-300" />
                 <input
                   type="text"
                   name="fullName"
@@ -200,9 +200,9 @@ function Signup() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Username</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium ml-1">Username</label>
               <div className="relative group">
-                <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
+                <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-primary transition-colors duration-300" />
                 <input
                   type="text"
                   name="username"
@@ -216,9 +216,9 @@ function Signup() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Password</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium ml-1">Password</label>
               <div className="relative group">
-                <IoKeySharp className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
+                <IoKeySharp className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-primary transition-colors duration-300" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
@@ -231,7 +231,7 @@ function Signup() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
@@ -240,9 +240,9 @@ function Signup() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Confirm Password</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium ml-1">Confirm Password</label>
               <div className="relative group">
-                <IoKeySharp className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
+                <IoKeySharp className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-primary transition-colors duration-300" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
@@ -255,7 +255,7 @@ function Signup() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
@@ -264,15 +264,15 @@ function Signup() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Gender</label>
+              <label className="text-sm text-[var(--text-secondary)] font-medium ml-1">Gender</label>
               <div className="flex gap-3">
                 {["male", "female"].map((gender) => (
                   <label
                     key={gender}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition-all duration-300
+                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl cursor-pointer border transition-all duration-200 font-semibold text-xs
                       ${signupData.gender === gender
-                        ? 'border-primary/50 bg-primary/10 text-primary'
-                        : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20'
+                        ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                        : 'border-[var(--border-color)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--btn-secondary-hover)]'
                       }`}
                   >
                     <input
@@ -303,7 +303,7 @@ function Signup() {
             </button>
           </div>
 
-          <p className="text-center text-gray-400 text-sm">
+          <p className="text-center text-[var(--text-secondary)] text-sm">
             Already have an account?{" "}
             <Link to="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
               Sign in

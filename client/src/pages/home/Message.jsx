@@ -50,14 +50,14 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
     }, []) || [];
 
     const bubbleClasses = isMobile
-        ? 'px-3 py-2.5 text-[15px] leading-relaxed shadow-md relative break-word'
-        : 'px-4 py-2.5 text-sm leading-relaxed shadow-lg relative';
+        ? 'px-3 py-2 text-[14px] leading-relaxed relative break-word'
+        : 'px-3.5 py-2 text-xs leading-relaxed relative break-word';
 
     if ((isSender && isDeletedForSender) || isDeletedForEveryone) {
         return (
-            <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-2 gap-2 opacity-40`}>
+            <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} mb-2 gap-2 opacity-50`}>
                 <div className={`max-w-[75%] ${isSender ? 'items-end' : 'items-start'} flex flex-col`}>
-                    <div className="px-4 py-2.5 text-sm italic text-gray-500 glass rounded-2xl">
+                    <div className="px-3 py-1.5 text-xs italic text-[var(--text-muted)] bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl">
                         This message was deleted
                     </div>
                 </div>
@@ -68,32 +68,32 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
     // Mobile layout
     if (isMobile) {
         return (
-            <div className={`group flex ${isSender ? 'justify-end' : 'justify-start'} mb-3 gap-2 relative`}>
+            <div className={`group flex ${isSender ? 'justify-end' : 'justify-start'} mb-2.5 gap-1.5 relative`}>
                 {!isSender && (
                     <div className="flex-shrink-0 self-end">
-                        <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+                        <div className="w-6 h-6 rounded-full overflow-hidden ring-1 ring-[var(--border-color)]">
                             <img src={senderAvatar} alt="" className="w-full h-full object-cover"
                                 onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${senderName}&background=6366F1&color=fff`; }} />
                         </div>
                     </div>
                 )}
 
-                <div className={`max-w-[75%] ${isSender ? 'items-end' : 'items-start'} flex flex-col relative`}>
+                <div className={`max-w-[78%] ${isSender ? 'items-end' : 'items-start'} flex flex-col relative`}>
                     {messageDetails?.replyTo && (
-                        <div className={`mb-1 max-w-[90%] cursor-pointer ${isSender ? 'self-end' : 'self-start'}`}
+                        <div className={`mb-1 max-w-[92%] cursor-pointer ${isSender ? 'self-end' : 'self-start'}`}
                             onClick={() => onScrollToMessage && onScrollToMessage(messageDetails.replyTo.messageId)}
                         >
-                            <div className={`px-3 py-1.5 rounded-lg text-[12px] border-l-2 ${isSender ? 'border-white/30 bg-white/5' : 'border-primary/30 bg-white/5'}`}>
-                                <p className="font-medium text-primary/80 truncate">{messageDetails.replyTo.senderName}</p>
-                                <p className="text-gray-400 truncate">{messageDetails.replyTo.message}</p>
+                            <div className={`px-2.5 py-1 rounded-lg text-[11px] border-l-2 ${isSender ? 'border-white/50 bg-black/15 text-white/90' : 'border-primary/60 bg-[var(--bg-elevated)] text-[var(--text-secondary)]'}`}>
+                                <p className="font-medium truncate">{messageDetails.replyTo.senderName}</p>
+                                <p className="truncate opacity-80">{messageDetails.replyTo.message}</p>
                             </div>
                         </div>
                     )}
 
                     <div className={`${bubbleClasses}
                         ${isSender
-                            ? 'gradient-primary text-white rounded-2xl rounded-br-md shadow-primary/20'
-                            : 'glass rounded-2xl rounded-bl-md text-gray-200'
+                            ? 'glass-bubble-sent rounded-2xl rounded-br-xs'
+                            : 'glass-bubble-received rounded-2xl rounded-bl-xs'
                         }`}
                     >
                         {messageDetails?.messageType === 'image' && messageDetails?.imageUrl ? (
@@ -112,25 +112,35 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
                                 />
                             </div>
                         ) : (
-                            <span className="break-word">{highlightText(messageDetails?.message, searchQuery)}</span>
+                            <span className="break-word font-normal">{highlightText(messageDetails?.message, searchQuery)}</span>
                         )}
                         {messageDetails?.isEdited && messageDetails?.messageType === 'text' && (
-                            <span className="text-[10px] text-white/50 ml-1.5">(edited)</span>
+                            <span className={`text-[10px] ml-1.5 ${isSender ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>(edited)</span>
                         )}
                     </div>
 
+                    {/* Instagram-style standalone emoji reactions (no background box/div) */}
                     {reactionCounts.length > 0 && (
-                        <div className={`flex gap-0.5 -mt-2 ${isSender ? 'self-end' : 'self-start'}`}>
-                            <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full glass border border-white/5 text-xs shadow-sm">
-                                {reactionCounts.map((r, i) => (
-                                    <span key={i} className="text-base leading-none">{r.emoji}</span>
-                                ))}
-                            </div>
+                        <div className={`flex items-center gap-1 -mt-1 select-none ${isSender ? 'self-end' : 'self-start'}`}>
+                            {reactionCounts.map((r, i) => (
+                                <span
+                                    key={i}
+                                    className="text-base leading-none inline-flex items-center gap-0.5 transition-transform hover:scale-115 cursor-default"
+                                    title={r.count > 1 ? `${r.count} reactions` : undefined}
+                                >
+                                    {r.emoji}
+                                    {r.count > 1 && (
+                                        <span className="text-[10px] font-medium text-[var(--text-muted)]">
+                                            {r.count}
+                                        </span>
+                                    )}
+                                </span>
+                            ))}
                         </div>
                     )}
 
-                    <div className={`flex items-center gap-1.5 mt-1 px-1 ${isSender ? 'self-end' : 'self-start'}`}>
-                        <span className="text-[11px] text-gray-600">{formatTime(messageDetails?.createdAt)}</span>
+                    <div className={`flex items-center gap-1 mt-0.5 px-0.5 ${isSender ? 'self-end' : 'self-start'}`}>
+                        <span className="text-[10px] font-normal text-[var(--text-muted)]">{formatTime(messageDetails?.createdAt)}</span>
                         {isSender && (
                             <MessageStatus seenBy={messageDetails?.seenBy} currentUserId={userProfile?.profile?._id} />
                         )}
@@ -139,7 +149,7 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
 
                 {isSender && (
                     <div className="flex-shrink-0 self-end">
-                        <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+                        <div className="w-6 h-6 rounded-full overflow-hidden ring-1 ring-[var(--border-color)]">
                             <img src={senderAvatar} alt="" className="w-full h-full object-cover"
                                 onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${senderName}&background=6366F1&color=fff`; }} />
                         </div>
@@ -159,12 +169,12 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
         );
     }
 
-    // Desktop layout: exact original, untouched
+    // Desktop layout
     return (
         <div className={`group flex ${isSender ? 'justify-end' : 'justify-start'} mb-2 gap-2 relative`}>
             {!isSender && (
                 <div className="flex-shrink-0 self-end">
-                    <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+                    <div className="w-6 h-6 rounded-full overflow-hidden ring-1 ring-[var(--border-color)]">
                         <img
                             src={senderAvatar}
                             alt=""
@@ -183,18 +193,18 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
                         className={`mb-1 max-w-[90%] cursor-pointer ${isSender ? 'self-end' : 'self-start'}`}
                         onClick={() => onScrollToMessage && onScrollToMessage(messageDetails.replyTo.messageId)}
                     >
-                        <div className={`px-3 py-1.5 rounded-lg text-[11px] border-l-2 ${isSender ? 'border-white/30 bg-white/5' : 'border-primary/30 bg-white/5'}`}>
-                            <p className="font-medium text-primary/80 truncate">{messageDetails.replyTo.senderName}</p>
-                            <p className="text-gray-400 truncate">{messageDetails.replyTo.message}</p>
+                        <div className={`px-2.5 py-1 rounded-lg text-[11px] border-l-2 ${isSender ? 'border-white/50 bg-black/15 text-white/90' : 'border-primary/60 bg-[var(--bg-elevated)] text-[var(--text-secondary)]'}`}>
+                            <p className="font-medium truncate">{messageDetails.replyTo.senderName}</p>
+                            <p className="truncate opacity-80">{messageDetails.replyTo.message}</p>
                         </div>
                     </div>
                 )}
 
                 <div
-                    className={`px-4 py-2.5 text-sm leading-relaxed shadow-lg relative break-word
+                    className={`${bubbleClasses}
                         ${isSender
-                            ? 'gradient-primary text-white rounded-2xl rounded-br-md shadow-primary/20'
-                            : 'glass rounded-2xl rounded-bl-md text-gray-200'
+                            ? 'glass-bubble-sent rounded-2xl rounded-br-xs'
+                            : 'glass-bubble-received rounded-2xl rounded-bl-xs'
                         }`}
                 >
                     {messageDetails?.messageType === 'image' && messageDetails?.imageUrl ? (
@@ -213,25 +223,35 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
                             />
                         </div>
                     ) : (
-                        highlightText(messageDetails?.message, searchQuery)
+                        <span className="break-word font-normal">{highlightText(messageDetails?.message, searchQuery)}</span>
                     )}
                     {messageDetails?.isEdited && messageDetails?.messageType === 'text' && (
-                        <span className="text-[10px] text-white/50 ml-1.5">(edited)</span>
+                        <span className={`text-[10px] ml-1.5 ${isSender ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>(edited)</span>
                     )}
                 </div>
 
+                {/* Instagram-style standalone emoji reactions (no background box/div) */}
                 {reactionCounts.length > 0 && (
-                    <div className={`flex gap-0.5 -mt-2 ${isSender ? 'self-end' : 'self-start'}`}>
-                        <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full glass border border-white/5 text-xs shadow-sm">
-                            {reactionCounts.map((r, i) => (
-                                <span key={i} className="text-base leading-none">{r.emoji}</span>
-                            ))}
-                        </div>
+                    <div className={`flex items-center gap-1 -mt-1 select-none ${isSender ? 'self-end' : 'self-start'}`}>
+                        {reactionCounts.map((r, i) => (
+                            <span
+                                key={i}
+                                className="text-base leading-none inline-flex items-center gap-0.5 transition-transform hover:scale-115 cursor-default"
+                                title={r.count > 1 ? `${r.count} reactions` : undefined}
+                            >
+                                {r.emoji}
+                                {r.count > 1 && (
+                                    <span className="text-[10px] font-medium text-[var(--text-muted)]">
+                                        {r.count}
+                                    </span>
+                                )}
+                            </span>
+                        ))}
                     </div>
                 )}
 
-                <div className={`flex items-center gap-1.5 mt-1 px-1 ${isSender ? 'self-end' : 'self-start'}`}>
-                    <span className="text-[10px] text-gray-600">{formatTime(messageDetails?.createdAt)}</span>
+                <div className={`flex items-center gap-1 mt-0.5 px-0.5 ${isSender ? 'self-end' : 'self-start'}`}>
+                    <span className="text-[10px] font-normal text-[var(--text-muted)]">{formatTime(messageDetails?.createdAt)}</span>
                     {isSender && (
                         <MessageStatus seenBy={messageDetails?.seenBy} currentUserId={userProfile?.profile?._id} />
                     )}
@@ -240,7 +260,7 @@ function Message({ messageDetails, onReply, onStartEdit, onScrollToMessage, sear
 
             {isSender && (
                 <div className="flex-shrink-0 self-end">
-                    <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+                    <div className="w-6 h-6 rounded-full overflow-hidden ring-1 ring-[var(--border-color)]">
                         <img
                             src={senderAvatar}
                             alt=""

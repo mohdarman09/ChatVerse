@@ -22,9 +22,14 @@ function MessageContainer({ onBack, isMobile }) {
   const { onlineUsers, socket } = useSelector(state => state.socketReducer);
   const { startCall } = useCall();
   const isUserOnline = onlineUsers?.includes(selectedUser?._id);
+
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const scrollAdjustRef = useRef(null);
+  const isInitialChatLoadRef = useRef(true);
+  const isAtBottomRef = useRef(true);
+  const prevUserIdRef = useRef(null);
+
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,14 +37,22 @@ function MessageContainer({ onBack, isMobile }) {
   const [editingMessage, setEditingMessage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
 
+  // When selected user changes, mark for fresh initial instant scroll to bottom
   useEffect(() => {
     scrollAdjustRef.current = null;
     if (selectedUser?._id) {
-      dispatch(getMessageThunk({ recieverId: selectedUser?._id }));
+      if (prevUserIdRef.current !== selectedUser._id) {
+        prevUserIdRef.current = selectedUser._id;
+        isInitialChatLoadRef.current = true;
+        isAtBottomRef.current = true;
+        setIsAtBottom(true);
+      }
+      dispatch(getMessageThunk({ recieverId: selectedUser._id }));
       dispatch(resetUnreadCount(selectedUser._id));
     }
-  }, [selectedUser]);
+  }, [selectedUser, dispatch]);
 
+  // Mark unseen messages as seen
   useEffect(() => {
     if (!selectedUser?._id || !socket) return;
     const unreadMessages = messages.filter(
@@ -53,25 +66,34 @@ function MessageContainer({ onBack, isMobile }) {
     }
   }, [selectedUser, socket, messages]);
 
-  const scrollToBottom = useCallback((smooth = true) => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
-    }
-  }, []);
-
+  // Handle instant positioning and message updates
   useEffect(() => {
-    if (isAtBottom) {
-      scrollToBottom(true);
-    }
-  }, [messages, isAtBottom]);
-
-  useEffect(() => {
-    if (!scrollAdjustRef.current) return;
-    const { prevScrollHeight, prevScrollTop } = scrollAdjustRef.current;
-    scrollAdjustRef.current = null;
     const container = messagesContainerRef.current;
-    if (container) {
+    if (!container) return;
+
+    // 1. Pagination scroll height restoration
+    if (scrollAdjustRef.current) {
+      const { prevScrollHeight, prevScrollTop } = scrollAdjustRef.current;
+      scrollAdjustRef.current = null;
       container.scrollTop = container.scrollHeight - prevScrollHeight + prevScrollTop;
+      return;
+    }
+
+    // 2. Initial load for a chat - jump instantly to the bottom with zero animation
+    if (isInitialChatLoadRef.current && messages?.length > 0) {
+      container.scrollTop = container.scrollHeight;
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+          isInitialChatLoadRef.current = false;
+        }
+      });
+      return;
+    }
+
+    // 3. New message arrives / user sends message - auto-scroll only if user is already at bottom
+    if (isAtBottomRef.current) {
+      container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
 
@@ -79,7 +101,8 @@ function MessageContainer({ onBack, isMobile }) {
     const container = messagesContainerRef.current;
     if (!container) return;
     const threshold = 100;
-    const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+    isAtBottomRef.current = atBottom;
     setIsAtBottom(atBottom);
 
     if (
@@ -155,11 +178,11 @@ function MessageContainer({ onBack, isMobile }) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[var(--bg-primary)]">
         <div className="text-center animate-fade-in px-4">
-          <div className="w-20 h-20 rounded-2xl gradient-primary/10 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/5">
+          <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/5">
             <BsChatDots className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-2xl font-bold gradient-text mb-2">Welcome to ChatVerse</h2>
-          <p className="text-gray-500">Select a conversation to start chatting</p>
+          <p className="text-[var(--text-secondary)]">Select a conversation to start chatting</p>
         </div>
       </div>
     )
@@ -169,11 +192,11 @@ function MessageContainer({ onBack, isMobile }) {
   if (isMobile) {
     return (
       <div className="w-full h-dvh flex flex-col bg-[var(--bg-primary)]">
-        <div className="sticky top-0 z-10 bg-[var(--bg-secondary)] border-b border-white/[0.06] safe-top-mobile">
+        <div className="sticky top-0 z-10 bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] safe-top-mobile">
           <div className="flex items-center gap-3 px-2 py-2">
             <button
               onClick={onBack}
-              className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)] transition-all"
               aria-label="Back to conversations"
             >
               <IoArrowBack className="w-6 h-6" />
@@ -197,24 +220,24 @@ function MessageContainer({ onBack, isMobile }) {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[15px] font-semibold text-white truncate group-hover:text-primary transition-colors">
+                <h2 className="text-[15px] font-semibold text-[var(--text-primary)] truncate group-hover:text-primary transition-colors">
                   {selectedUser?.fullName}
                 </h2>
-                <p className={`text-[12px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
+                <p className={`text-[12px] ${isUserOnline ? 'text-green-500 font-medium' : 'text-[var(--text-muted)]'}`}>
                   {isUserOnline ? 'Online' : 'Offline'}
                 </p>
               </div>
             </div>
             <button
               onClick={() => startCall(selectedUser)}
-              className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              className="w-11 h-11 flex items-center justify-center rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)] transition-all"
               aria-label="Audio call"
             >
               <BsTelephone className="w-5 h-5" />
             </button>
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${showSearch ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+              className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${showSearch ? 'bg-primary/20 text-primary' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)]'}`}
               aria-label="Search messages"
             >
               <IoSearch className="w-5 h-5" />
@@ -272,7 +295,7 @@ function MessageContainer({ onBack, isMobile }) {
               <p className="text-gray-500 text-sm">No messages match your search</p>
             </div>
           ) : (
-            <div className="px-3 pt-3 pb-6">
+            <div className="px-3 pt-3 pb-4">
               {groupedMessages.map((item, index) => {
                 if (item.type === 'date') {
                   return <DateSeparator key={`date-${index}`} date={item.date} />;
@@ -282,8 +305,6 @@ function MessageContainer({ onBack, isMobile }) {
                   <div
                     key={msg._id || index}
                     id={`message-${msg._id}`}
-                    className="animate-fade-in-up"
-                    style={{ animationDelay: `${Math.min(index * 0.012, 0.3)}s` }}
                   >
                     <Message
                       isMobile={true}
@@ -328,27 +349,25 @@ function MessageContainer({ onBack, isMobile }) {
           </div>
         )}
 
-        <div className="sticky bottom-0 bg-[var(--bg-secondary)] border-t border-white/[0.06] safe-bottom-mobile">
-          <SendMessage
-            isMobile={true}
-            replyTo={replyTo}
-            onCancelReply={cancelReply}
-            editingMessage={editingMessage}
-            onCancelEdit={cancelEdit}
-          />
-        </div>
+        <SendMessage
+          isMobile={true}
+          replyTo={replyTo}
+          onCancelReply={cancelReply}
+          editingMessage={editingMessage}
+          onCancelEdit={cancelEdit}
+        />
       </div>
     );
   }
 
-  // Desktop layout: exact original, untouched
+  // Desktop layout
   return (
     <div className="flex-1 flex flex-col h-screen bg-[var(--bg-primary)]">
-      <div className="sticky top-0 z-10 glass border-b border-white/5">
+      <div className="sticky top-0 z-10 glass border-b border-[var(--border-color)]">
         <div className="flex items-center gap-3 p-3">
           <button
             onClick={onBack}
-            className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-all duration-300 text-gray-400 hover:text-white"
+            className="lg:hidden p-2 rounded-xl hover:bg-[var(--user-hover-bg)] transition-all duration-200 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             aria-label="Back to conversations"
           >
             <IoArrowBack className="w-5 h-5" />
@@ -368,28 +387,28 @@ function MessageContainer({ onBack, isMobile }) {
                 />
               </div>
               {isUserOnline && (
-                <div className="absolute -top-0.5 -right-0.5 status-dot status-dot-online" />
+                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] truncate group-hover:text-primary transition-colors">
                 {selectedUser?.fullName}
               </h2>
-              <p className={`text-[11px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
+              <p className={`text-xs ${isUserOnline ? 'text-green-500 font-medium' : 'text-[var(--text-muted)]'}`}>
                 {isUserOnline ? 'Online' : 'Offline'}
               </p>
             </div>
           </div>
           <button
             onClick={() => startCall(selectedUser)}
-            className="p-2 rounded-xl transition-all duration-300 text-gray-400 hover:text-white hover:bg-white/5"
+            className="p-2 rounded-xl transition-all duration-200 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)]"
             aria-label="Audio call"
           >
             <BsTelephone className="w-5 h-5" />
           </button>
           <button
             onClick={() => setShowSearch(!showSearch)}
-            className={`p-2 rounded-xl transition-all duration-300 ${showSearch ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            className={`p-2 rounded-xl transition-all duration-200 ${showSearch ? 'bg-primary/20 text-primary' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--user-hover-bg)]'}`}
             aria-label="Search messages"
           >
             <IoSearch className="w-5 h-5" />
@@ -403,23 +422,23 @@ function MessageContainer({ onBack, isMobile }) {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-4 py-4 scrollbar-custom"
-        >
-          {!buttonLoading && messages?.length > 0 && !hasMore && (
-            <div className="flex justify-center pb-2">
-              <div className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/5 rounded-full px-3 py-1">
-                Beginning of conversation
-              </div>
+        className="flex-1 overflow-y-auto px-4 py-4 scrollbar-custom"
+      >
+        {!buttonLoading && messages?.length > 0 && !hasMore && (
+          <div className="flex justify-center pb-2">
+            <div className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/5 rounded-full px-3 py-1">
+              Beginning of conversation
             </div>
-          )}
+          </div>
+        )}
 
-          {loadingOlder && (
-            <div className="flex justify-center pb-2">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
+        {loadingOlder && (
+          <div className="flex justify-center pb-2">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
 
-          {buttonLoading && messages?.length === 0 ? (
+        {buttonLoading && messages?.length === 0 ? (
           <div className="space-y-4 p-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} gap-3 animate-fade-in`}>
@@ -457,8 +476,6 @@ function MessageContainer({ onBack, isMobile }) {
                 <div
                   key={msg._id || index}
                   id={`message-${msg._id}`}
-                  className="animate-fade-in-up"
-                  style={{ animationDelay: `${Math.min(index * 0.012, 0.3)}s` }}
                 >
                   <Message
                     messageDetails={msg}
