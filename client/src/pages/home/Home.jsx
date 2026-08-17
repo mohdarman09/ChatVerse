@@ -35,9 +35,13 @@ function Home() {
   const { unreadCounts, conversations, conversationsStale } = useSelector(state => state.messageReducer);
 
   const selectedUserRef = useRef(selectedUser);
+  const typingTimeoutsRef = useRef({});
+
   useEffect(() => {
     selectedUserRef.current = selectedUser;
-    // Clear any stale typing indicators from the previous conversation
+    // Clear any stale typing indicators and timeouts from the previous conversation
+    Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+    typingTimeoutsRef.current = {};
     dispatch(clearTypingUsers());
   }, [selectedUser]);
 
@@ -79,10 +83,26 @@ function Home() {
     };
 
     const handleTyping = ({ senderId, senderName }) => {
+      if (!senderId || String(senderId) === String(userProfile?.profile?._id)) return;
+
+      if (typingTimeoutsRef.current[senderId]) {
+        clearTimeout(typingTimeoutsRef.current[senderId]);
+      }
+
       dispatch(setTypingUsers({ userId: senderId, isTyping: true, name: senderName }));
+
+      typingTimeoutsRef.current[senderId] = setTimeout(() => {
+        dispatch(setTypingUsers({ userId: senderId, isTyping: false }));
+        delete typingTimeoutsRef.current[senderId];
+      }, 3500);
     };
 
     const handleStopTyping = ({ senderId }) => {
+      if (!senderId) return;
+      if (typingTimeoutsRef.current[senderId]) {
+        clearTimeout(typingTimeoutsRef.current[senderId]);
+        delete typingTimeoutsRef.current[senderId];
+      }
       dispatch(setTypingUsers({ userId: senderId, isTyping: false }));
     };
 
@@ -125,6 +145,8 @@ function Home() {
     socket.on("userLastSeen", handleUserLastSeen);
 
     return () => {
+      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+      typingTimeoutsRef.current = {};
       socket.off("onlineUsers", handleOnlineUsers);
       socket.off("newMessage", handleNewMessage);
       socket.off("typing", handleTyping);

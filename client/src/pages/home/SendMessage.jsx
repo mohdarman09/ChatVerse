@@ -18,11 +18,12 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
     const inputRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const isTypingRef = useRef(false);
-
     const dispatch = useDispatch();
-    const { selectedUser } = useSelector(state => state.userReducer);
+    const { selectedUser, userProfile } = useSelector(state => state.userReducer);
     const { buttonLoading } = useSelector(state => state.messageReducer);
     const { socket } = useSelector(state => state.socketReducer);
+
+    const currentPeerIdRef = useRef(selectedUser?._id);
 
     // Auto-focus and prefill input when editing
     useEffect(() => {
@@ -39,41 +40,41 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
         }
     }, [replyTo]);
 
-    // Handle typing indicator
-    const handleTyping = useCallback(() => {
-        if (!socket || !selectedUser?._id) return;
-
-        if (!isTypingRef.current) {
-            isTypingRef.current = true;
-            socket.emit("typing", { recieverId: selectedUser._id });
-        }
-
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-        }
-
-        typingTimeoutRef.current = setTimeout(() => {
-            isTypingRef.current = false;
-            socket.emit("stopTyping", { recieverId: selectedUser._id });
-        }, 2000);
-    }, [socket, selectedUser]);
-
+    // Immediate stop typing function
     const stopTypingImmediate = useCallback(() => {
         if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
         }
-        if (isTypingRef.current && socket && selectedUser?._id) {
+        const peerId = currentPeerIdRef.current;
+        if (isTypingRef.current && socket && peerId) {
             isTypingRef.current = false;
-            socket.emit("stopTyping", { recieverId: selectedUser._id });
+            socket.emit("stopTyping", { recieverId: peerId });
         }
-    }, [socket, selectedUser]);
+    }, [socket]);
 
-    // Clean up typing on unmount
+    // Stop typing for previous user when switching chat conversation
+    useEffect(() => {
+        if (currentPeerIdRef.current && currentPeerIdRef.current !== selectedUser?._id) {
+            stopTypingImmediate();
+        }
+        currentPeerIdRef.current = selectedUser?._id;
+    }, [selectedUser?._id, stopTypingImmediate]);
+
+    // Clean up typing and timeout on unmount
     useEffect(() => {
         return () => {
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = null;
+            }
+            const peerId = currentPeerIdRef.current;
+            if (isTypingRef.current && socket && peerId) {
+                isTypingRef.current = false;
+                socket.emit("stopTyping", { recieverId: peerId });
+            }
         };
-    }, []);
+    }, [socket]);
 
     // Clean up object URLs
     useEffect(() => {
@@ -179,8 +180,38 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
     };
 
     const handleInputChange = (e) => {
-        setMessage(e.target.value);
-        handleTyping();
+        const val = e.target.value;
+        setMessage(val);
+
+        if (!socket || !selectedUser?._id) return;
+
+        if (!val.trim()) {
+            stopTypingImmediate();
+            return;
+        }
+
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            const senderName = userProfile?.profile?.fullName || userProfile?.profile?.username || "Someone";
+            socket.emit("typing", { recieverId: selectedUser._id, senderName });
+        }
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            const peerId = currentPeerIdRef.current;
+            if (isTypingRef.current && socket && peerId) {
+                isTypingRef.current = false;
+                socket.emit("stopTyping", { recieverId: peerId });
+            }
+            typingTimeoutRef.current = null;
+        }, 2000);
+    };
+
+    const handleInputBlur = () => {
+        stopTypingImmediate();
     };
 
     const handleAttachmentClick = () => {
@@ -278,6 +309,7 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
                                 placeholder={editingMessage ? "Edit message..." : "Message"}
                                 className="flex-1 min-w-0 w-full bg-transparent px-1 py-1.5 text-[14px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none resize-none overflow-y-auto max-h-24 leading-snug"
                                 onChange={handleInputChange}
+                                onBlur={handleInputBlur}
                                 value={message}
                                 onKeyDown={handleKeyDown}
                             />
@@ -382,6 +414,7 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
                             placeholder={editingMessage ? "Edit message..." : "Type a message..."}
                             className="w-full bg-[var(--bg-input)] border border-[var(--border-input)] rounded-xl pl-3.5 pr-3.5 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all resize-none overflow-y-auto max-h-28 leading-snug"
                             onChange={handleInputChange}
+                            onBlur={handleInputBlur}
                             value={message}
                             onKeyDown={handleKeyDown}
                         />

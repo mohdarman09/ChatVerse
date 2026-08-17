@@ -123,11 +123,24 @@ io.on("connection", (socket) => {
   io.emit("onlineUsers", [...userSockets.keys()]);
 
   // --- TYPING ---
-  socket.on("typing", ({ recieverId, senderName }) => {
+  socket.on("typing", async ({ recieverId, senderName }) => {
+    if (!recieverId || !userID) return;
+    try {
+      const [senderUser, receiverUser] = await Promise.all([
+        User.findById(userID).select("blockedUsers"),
+        User.findById(recieverId).select("blockedUsers")
+      ]);
+      const senderBlocked = senderUser?.blockedUsers?.some(id => String(id) === String(recieverId));
+      const receiverBlocked = receiverUser?.blockedUsers?.some(id => String(id) === String(userID));
+      if (senderBlocked || receiverBlocked) return;
+    } catch (err) {
+      console.error("Error checking block status for typing:", err);
+    }
     emitToUser(recieverId, "typing", { senderId: userID, senderName });
   });
 
   socket.on("stopTyping", ({ recieverId }) => {
+    if (!recieverId || !userID) return;
     emitToUser(recieverId, "stopTyping", { senderId: userID });
   });
 
