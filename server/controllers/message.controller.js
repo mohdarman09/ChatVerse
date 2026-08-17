@@ -24,7 +24,7 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
         return next(new errorHandler("Invalid user id", 400));
     }
 
-    let messageText = message || '';
+    let messageText = typeof message === 'string' ? message.trim() : '';
     let replyTo = req.body.replyTo;
     if (typeof replyTo === 'string') {
         try { replyTo = JSON.parse(replyTo); } catch { replyTo = undefined; }

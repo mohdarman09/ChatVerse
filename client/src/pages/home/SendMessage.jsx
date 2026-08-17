@@ -123,12 +123,14 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
                 toast.error("Message cannot be empty");
                 return;
             }
-            await dispatch(editMessageThunk({
+            const res = await dispatch(editMessageThunk({
                 messageId: editingMessage._id,
                 message: trimmed
             }));
-            setMessage("");
-            if (onCancelEdit) onCancelEdit();
+            if (editMessageThunk.fulfilled.match(res)) {
+                setMessage("");
+                if (onCancelEdit) onCancelEdit();
+            }
             return;
         }
 
@@ -136,21 +138,20 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
         if (selectedImage) {
             setImageUploading(true);
             try {
-                const formData = new FormData();
-                formData.append('image', selectedImage);
-                if (trimmed) formData.append('message', trimmed);
-                if (replyTo?._id) formData.append('replyTo', replyTo._id);
-
-                await dispatch(sendMessageThunk({
+                const res = await dispatch(sendMessageThunk({
                     recieverId: selectedUser?._id,
-                    formData
+                    message: trimmed || undefined,
+                    image: selectedImage,
+                    replyTo: replyTo || undefined
                 }));
 
-                setMessage("");
-                removeSelectedImage();
-                if (onCancelReply) onCancelReply();
+                if (sendMessageThunk.fulfilled.match(res)) {
+                    setMessage("");
+                    removeSelectedImage();
+                    if (onCancelReply) onCancelReply();
+                }
             } catch {
-                toast.error("Failed to send image");
+                // error handled in thunk
             } finally {
                 setImageUploading(false);
             }
@@ -158,21 +159,16 @@ function SendMessage({ isMobile, replyTo, onCancelReply, editingMessage, onCance
         }
 
         // Handle text-only message send
-        const messageData = {
-            message: trimmed,
-            messageType: 'text'
-        };
-        if (replyTo?._id) {
-            messageData.replyTo = replyTo._id;
-        }
-
-        setMessage("");
-        if (onCancelReply) onCancelReply();
-
-        await dispatch(sendMessageThunk({
+        const res = await dispatch(sendMessageThunk({
             recieverId: selectedUser?._id,
-            messageData
+            message: trimmed,
+            replyTo: replyTo || undefined
         }));
+
+        if (sendMessageThunk.fulfilled.match(res)) {
+            setMessage("");
+            if (onCancelReply) onCancelReply();
+        }
     };
 
     const handleKeyDown = (e) => {

@@ -2,31 +2,46 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../../../components/utilities/axiosinstance";
 
-export const sendMessageThunk = createAsyncThunk("message/send", async ({ recieverId, message, replyTo, image }, { rejectWithValue }) => {
-  try {
-    let response;
-    if (image) {
-      const formData = new FormData();
-      formData.append('image', image);
-      if (message) formData.append('message', message);
-      if (replyTo) formData.append('replyTo', JSON.stringify(replyTo));
-      response = await axiosInstance.post(`/message/send/${recieverId}`, formData, {
-        headers: { 'Content-Type': undefined },
-      });
-    } else {
-      response = await axiosInstance.post(`/message/send/${recieverId}`, {
-        message,
-        replyTo: replyTo || undefined
-      })
-    }
-    return response.data;
+export const sendMessageThunk = createAsyncThunk(
+  "message/send",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { recieverId } = payload;
+      let response;
 
-  } catch (error) {
-    const errorOutput = error?.response?.data?.message || error?.message || "Failed to send message"
-    toast.error(errorOutput)
-    return rejectWithValue(errorOutput);
+      if (payload.formData instanceof FormData) {
+        response = await axiosInstance.post(`/message/send/${recieverId}`, payload.formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else if (payload.image) {
+        const formData = new FormData();
+        formData.append('image', payload.image);
+        const textMsg = payload.message ?? payload.messageData?.message;
+        if (textMsg) formData.append('message', textMsg);
+        const reply = payload.replyTo ?? payload.messageData?.replyTo;
+        if (reply) {
+          formData.append('replyTo', typeof reply === 'object' ? JSON.stringify(reply) : reply);
+        }
+        response = await axiosInstance.post(`/message/send/${recieverId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else {
+        const textMsg = payload.message ?? payload.messageData?.message;
+        const reply = payload.replyTo ?? payload.messageData?.replyTo;
+        response = await axiosInstance.post(`/message/send/${recieverId}`, {
+          message: textMsg,
+          replyTo: reply || undefined,
+        });
+      }
+      return response.data;
+
+    } catch (error) {
+      const errorOutput = error?.response?.data?.message || error?.message || "Failed to send message";
+      toast.error(errorOutput);
+      return rejectWithValue(errorOutput);
+    }
   }
-});
+);
 
 
 export const getMessageThunk = createAsyncThunk(
