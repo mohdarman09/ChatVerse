@@ -1,11 +1,13 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { setSelectedUser } from "../../store/slice/user/user.slice";
 import Avatar from "../../components/Avatar";
 
 function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { selectedUser } = useSelector(state => state.userReducer);
   const { onlineUsers } = useSelector(state => state.socketReducer);
   const isUserOnline = onlineUsers?.includes(userDetails?._id);
@@ -14,7 +16,14 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
   const handleUserClick = () => {
     dispatch(setSelectedUser(userDetails));
     if (onClick) onClick();
-  }
+  };
+
+  const handleAvatarClick = (e) => {
+    e.stopPropagation();
+    if (userDetails?._id) {
+      navigate(`/profile/${userDetails._id}`);
+    }
+  };
 
   const formatMessageTime = () => {
     if (!lastMessage?.createdAt) return '';
@@ -35,8 +44,12 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
           ${isSelected ? 'bg-primary/[0.08]' : 'hover:bg-white/[0.03]'}
         `}
       >
-        <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/10">
+        <div
+          className="relative flex-shrink-0"
+          onClick={handleAvatarClick}
+          title="View profile"
+        >
+          <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/10 active:scale-95 transition-transform">
             <Avatar
               src={userDetails?.avatar}
               name={userDetails?.fullName}
@@ -88,8 +101,12 @@ function User({ userDetails, onClick, lastMessage, unreadCount, isMobile }) {
           : 'hover:bg-white/5 border border-transparent'
         }`}
     >
-      <div className="relative flex-shrink-0">
-        <div className={`w-11 h-11 rounded-full overflow-hidden ring-2 transition-all duration-300
+      <div
+        className="relative flex-shrink-0"
+        onClick={handleAvatarClick}
+        title="View profile"
+      >
+        <div className={`w-11 h-11 rounded-full overflow-hidden ring-2 transition-all duration-300 hover:scale-105 active:scale-95
           ${isSelected ? 'ring-primary/60' : 'ring-white/10 group-hover:ring-primary/40'}`}>
           <Avatar
             src={userDetails?.avatar}

@@ -29,9 +29,16 @@ function Login() {
   };
 
   const handleLogin = async () => {
-    if (!loginData.username || !loginData.password) {
-      return toast.error("Please fill in all fields");
+    if (buttonLoading) return; // Prevent duplicate submission
+
+    // Per-field validation with specific messages
+    if (!loginData.username.trim()) {
+      return toast.error("Username is required");
     }
+    if (!loginData.password) {
+      return toast.error("Password is required");
+    }
+
     const response = await dispatch(loginUserThunk(loginData));
     if (response?.payload?.success) {
       navigate("/");

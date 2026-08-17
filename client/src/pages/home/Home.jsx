@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react'
 import UserSidebar from './UserSidebar'
 import MessageContainer from './MessageContainer'
 import { useDispatch, useSelector } from 'react-redux';
-import { getUserProfileThunk } from '../../store/slice/user/user.thunk';
 import { initializeSocket, setOnlineUsers } from '../../store/slice/socket/socket.slice';
 import {
   setNewMessage,
@@ -12,6 +11,7 @@ import {
   deleteMessageFromStore,
   updateMessageReactions,
   setTypingUsers,
+  clearTypingUsers,
 } from '../../store/slice/message/message.slice';
 import { getConversationsThunk } from '../../store/slice/message/message.thunk';
 import { setUserLastSeen } from '../../store/slice/user/user.slice';
@@ -30,10 +30,6 @@ function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    dispatch(getUserProfileThunk());
-  }, []);
-
   const { isAuthenticated, userProfile, selectedUser } = useSelector(state => state.userReducer);
   const { socket } = useSelector(state => state.socketReducer);
   const { unreadCounts, conversations, conversationsStale } = useSelector(state => state.messageReducer);
@@ -41,6 +37,8 @@ function Home() {
   const selectedUserRef = useRef(selectedUser);
   useEffect(() => {
     selectedUserRef.current = selectedUser;
+    // Clear any stale typing indicators from the previous conversation
+    dispatch(clearTypingUsers());
   }, [selectedUser]);
 
   const conversationsRef = useRef(conversations);

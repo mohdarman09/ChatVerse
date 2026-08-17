@@ -23,6 +23,11 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
     const isTypingRef = useRef(false);
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
+    // Keep always-fresh refs so cleanup/timeout callbacks never capture stale closures
+    const socketRef = useRef(socket);
+    const selectedUserRef = useRef(selectedUser);
+    useEffect(() => { socketRef.current = socket; }, [socket]);
+    useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
     useEffect(() => {
         if (editingMessage) {
@@ -36,6 +41,19 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
         };
     }, [imagePreview]);
 
+    // Emit stop-typing using always-fresh refs — safe to call from timeout callbacks
+    const emitStopTyping = useCallback(() => {
+        const s = socketRef.current;
+        const u = selectedUserRef.current;
+        if (!s || !u?._id) return;
+        isTypingRef.current = false;
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+        }
+        s.emit("stopTyping", { recieverId: u._id });
+    }, []);
+
     const emitTyping = useCallback(() => {
         if (!socket || !selectedUser?._id) return;
         if (!isTypingRef.current) {
@@ -48,22 +66,23 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
 
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
-            isTypingRef.current = false;
-            if (socket) {
-                socket.emit("stopTyping", { recieverId: selectedUser._id });
-            }
+            emitStopTyping();
         }, 1000);
-    }, [socket, selectedUser, userProfile]);
+    }, [socket, selectedUser, userProfile, emitStopTyping]);
 
+    // Cleanup: emit stopTyping and clear timer on unmount OR conversation change
     useEffect(() => {
         return () => {
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            if (socket && selectedUser?._id && isTypingRef.current) {
-                socket.emit("stopTyping", { recieverId: selectedUser._id });
-                isTypingRef.current = false;
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = null;
+            }
+            if (isTypingRef.current) {
+                emitStopTyping();
             }
         };
-    }, [socket, selectedUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedUser]);
 
     const handleImageSelect = (e) => {
         const file = e.target.files?.[0];
@@ -137,19 +156,22 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
 
         if (selectedImage) {
             setImageUploading(true);
-            await dispatch(sendMessageThunk({
-                recieverId: selectedUser?._id,
-                message: message.trim(),
-                replyTo: replyTo ? {
-                    messageId: replyTo.messageId,
-                    message: replyTo.message,
-                    senderId: replyTo.senderId,
-                    senderName: replyTo.senderName
-                } : null,
-                image: selectedImage
-            }))
-            setImageUploading(false);
-            removeSelectedImage();
+            try {
+                await dispatch(sendMessageThunk({
+                    recieverId: selectedUser?._id,
+                    message: message.trim(),
+                    replyTo: replyTo ? {
+                        messageId: replyTo.messageId,
+                        message: replyTo.message,
+                        senderId: replyTo.senderId,
+                        senderName: replyTo.senderName
+                    } : null,
+                    image: selectedImage
+                }));
+            } finally {
+                setImageUploading(false);
+                removeSelectedImage();
+            }
         } else {
             dispatch(sendMessageThunk({
                 recieverId: selectedUser?._id,
@@ -165,12 +187,9 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
         setMessage("");
         if (inputRef.current) inputRef.current.style.height = 'auto';
 
+        // Immediately stop the typing indicator when a message is sent
         if (isTypingRef.current) {
-            isTypingRef.current = false;
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            if (socket) {
-                socket.emit("stopTyping", { recieverId: selectedUser._id });
-            }
+            emitStopTyping();
         }
 
         if (onCancelReply) onCancelReply();
@@ -189,7 +208,14 @@ const SendMessage = ({ replyTo, onCancelReply, editingMessage, onCancelEdit, isM
         el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
         setMessage(e.target.value);
         if (!editingMessage) {
-            emitTyping();
+            if (e.target.value.trim() === '') {
+                // Input became empty: immediately stop typing
+                if (isTypingRef.current) {
+                    emitStopTyping();
+                }
+            } else {
+                emitTyping();
+            }
         }
     }
 

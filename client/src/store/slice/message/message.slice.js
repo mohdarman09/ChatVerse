@@ -153,6 +153,9 @@ export const messageSlice = createSlice({
         delete state.typingUsers[userId];
       }
     },
+    clearTypingUsers: (state) => {
+      state.typingUsers = {};
+    },
     resetUnreadCount: (state, action) => {
       const userId = action.payload;
       state.unreadCounts[userId] = 0;
@@ -257,6 +260,7 @@ export const {
   deleteMessageFromStore,
   updateMessageReactions,
   setTypingUsers,
+  clearTypingUsers,
   resetUnreadCount,
 } = messageSlice.actions;
 

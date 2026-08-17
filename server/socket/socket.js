@@ -213,7 +213,7 @@ io.on("connection", (socket) => {
   });
 
   // --- CALL SIGNALING (WebRTC offer/answer/ICE relay only) ---
-  socket.on("call:start", ({ to, offer, fromName, fromAvatar }) => {
+  socket.on("call:start", async ({ to, offer, fromName, fromAvatar }) => {
     if (!to || !offer) return;
     if (busyUsers.has(userID)) {
       socket.emit("call:failed", { reason: "busy" });
@@ -228,6 +228,22 @@ io.on("connection", (socket) => {
       socket.emit("call:failed", { reason: "busy" });
       return;
     }
+
+    try {
+      const [callerUser, calleeUser] = await Promise.all([
+        User.findById(userID).select("blockedUsers"),
+        User.findById(to).select("blockedUsers")
+      ]);
+      const callerBlocked = callerUser?.blockedUsers?.some(id => String(id) === String(to));
+      const calleeBlocked = calleeUser?.blockedUsers?.some(id => String(id) === String(userID));
+      if (callerBlocked || calleeBlocked) {
+        socket.emit("call:failed", { reason: "unavailable" });
+        return;
+      }
+    } catch (err) {
+      console.error("Error checking block status for call:", err);
+    }
+
     busyUsers.add(userID);
     busyUsers.add(to);
     activeCalls.set(userID, { callerId: userID, calleeId: to, ringAt: new Date() });

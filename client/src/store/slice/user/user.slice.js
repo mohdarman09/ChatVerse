@@ -1,12 +1,21 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { getUserProfileThunk, loginUserThunk, logoutUserThunk, registerUserThunk, updateProfileThunk, changePasswordThunk, deleteAccountThunk } from "./user.thunk";
 
+const getInitialSelectedUser = () => {
+  try {
+    const item = localStorage.getItem("selectedUser");
+    return item ? JSON.parse(item) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const userSlice = createSlice({
   name: "user",
   initialState: {
     isAuthenticated: false,
     userProfile: null,
-    selectedUser: JSON.parse(localStorage.getItem("selectedUser")) || null,
+    selectedUser: getInitialSelectedUser(),
     buttonLoading: false,
     screenLoading: true,
     lastSeenMap: {},
@@ -19,6 +28,18 @@ export const userSlice = createSlice({
     setUserLastSeen: (state, action) => {
       const { userId, lastSeen } = action.payload;
       state.lastSeenMap[userId] = lastSeen;
+    },
+    // Called by the axios 401 interceptor and by logout/delete thunks.
+    // Completely wipes all auth state so the app returns to logged-out state
+    // regardless of where in the app the 401 was received.
+    resetAuthState: (state) => {
+      state.isAuthenticated = false;
+      state.userProfile = null;
+      state.selectedUser = null;
+      state.buttonLoading = false;
+      state.screenLoading = false;
+      state.lastSeenMap = {};
+      localStorage.removeItem("selectedUser");
     },
   },
   extraReducers: (builder) => {
@@ -51,10 +72,18 @@ export const userSlice = createSlice({
       state.selectedUser = null;
       state.isAuthenticated = false;
       state.buttonLoading = false;
+      state.screenLoading = false;
       localStorage.removeItem("selectedUser");
     });
     builder.addCase(logoutUserThunk.rejected, (state) => {
+      // Even if the server request failed, clear local auth state.
+      // The user pressed logout — always honour it on the client.
+      state.userProfile = null;
+      state.selectedUser = null;
+      state.isAuthenticated = false;
       state.buttonLoading = false;
+      state.screenLoading = false;
+      localStorage.removeItem("selectedUser");
     });
 
     builder.addCase(getUserProfileThunk.pending, (state) => {
@@ -100,6 +129,7 @@ export const userSlice = createSlice({
       state.selectedUser = null;
       state.isAuthenticated = false;
       state.buttonLoading = false;
+      state.screenLoading = false;
       localStorage.removeItem("selectedUser");
     });
     builder.addCase(deleteAccountThunk.rejected, (state) => {
@@ -108,6 +138,6 @@ export const userSlice = createSlice({
   },
 });
 
-export const { setSelectedUser, setUserLastSeen } = userSlice.actions;
+export const { setSelectedUser, setUserLastSeen, resetAuthState } = userSlice.actions;
 
 export default userSlice.reducer;

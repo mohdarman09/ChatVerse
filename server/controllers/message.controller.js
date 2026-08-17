@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import Message from "../models/message.model.js";
+import User from "../models/user.model.js";
 import Conversation from "../models/conversation.model.js";
 import CallLog from "../models/call.model.js";
 import { asyncHandler } from "../utilities/asyncHandler.utilitiy.js";
@@ -31,6 +32,23 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
 
     if (!senderId || !recieverId) {
         return next(new errorHandler("All fields are required", 400));
+    }
+
+    // Verify both sender and receiver exist, and check block status in BOTH directions
+    const [sender, receiver] = await Promise.all([
+        User.findById(senderId).select("blockedUsers"),
+        User.findById(recieverId).select("blockedUsers")
+    ]);
+
+    if (!receiver) {
+        return next(new errorHandler("User not found", 404));
+    }
+
+    const senderBlockedReceiver = sender?.blockedUsers?.some(id => String(id) === String(recieverId));
+    const receiverBlockedSender = receiver?.blockedUsers?.some(id => String(id) === String(senderId));
+
+    if (senderBlockedReceiver || receiverBlockedSender) {
+        return next(new errorHandler("This user is unavailable for messaging.", 403));
     }
 
     let imageUrl = null;

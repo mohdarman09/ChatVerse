@@ -1,6 +1,33 @@
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { getUserProfileThunk } from './store/slice/user/user.thunk';
 
+// App is rendered outside the RouterProvider so it is always mounted
+// regardless of the current route. This is the correct place to kick off
+// the one-time authentication check on app startup.
+//
+// Flow on cold start:
+//   1. Redux initialState: screenLoading=true, isAuthenticated=false
+//   2. getUserProfileThunk fires here immediately.
+//   3. ProtectedRoute (on any protected path) renders null while screenLoading=true.
+//   4a. If the server returns a valid profile → fulfilled: isAuthenticated=true,
+//       screenLoading=false → ProtectedRoute renders children.
+//   4b. If the server returns 401 (no cookie / deleted user / expired token)
+//       → rejected: screenLoading=false, isAuthenticated=false
+//       → axios 401 interceptor also dispatches resetAuthState()
+//       → ProtectedRoute renders <Navigate to="/login" replace />.
+//
+// This means Home.jsx no longer needs its own getUserProfileThunk() call on
+// mount. The call in Home.jsx is harmless but redundant; the auth state will
+// already be resolved by the time Home renders.
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(getUserProfileThunk());
+  }, []);
+
   return (
     <div>
       <div className="app-bg" />

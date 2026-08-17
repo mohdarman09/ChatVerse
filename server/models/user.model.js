@@ -28,7 +28,13 @@ const userSchema = new mongoose.Schema({
     },
     lastSeen:{
         type: Date
-    }
+    },
+    blockedUsers: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }
+    ]
 }, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);

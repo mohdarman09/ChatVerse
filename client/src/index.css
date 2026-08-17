@@ -333,9 +333,11 @@ body {
   border-right: 8px solid rgba(255, 255, 255, 0.04);
 }
 
-/* Safe area inset for mobile bottom elements */
+/* Safe area inset for mobile bottom elements.
+   max(..., 12px) guarantees at least 12px on all devices
+   (including non-notch Android where safe-area-inset-bottom = 0). */
 .safe-bottom-mobile {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
 }
 
 /* Safe area inset for mobile top elements */

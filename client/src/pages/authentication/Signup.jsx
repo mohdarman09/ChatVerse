@@ -80,21 +80,34 @@ function Signup() {
   };
 
   const handleSignup = async () => {
+    if (buttonLoading) return; // Prevent duplicate submission
+
     const trimmedFullName = signupData.fullName.trim();
     const trimmedUsername = signupData.username.trim();
 
-    if (!trimmedFullName || !trimmedUsername || !signupData.password || !signupData.confirmPassword) {
-      return toast.error("Please fill in all fields");
+    // Per-field validation with specific messages
+    if (!trimmedFullName) {
+      return toast.error("Full name is required");
     }
+    if (!trimmedUsername) {
+      return toast.error("Username is required");
+    }
+    if (!signupData.password) {
+      return toast.error("Password is required");
+    }
+    if (!signupData.confirmPassword) {
+      return toast.error("Please confirm your password");
+    }
+
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(trimmedUsername)) {
-      return toast.error("Username must be 3-20 characters with only letters, numbers and underscore");
-    }
-    if (signupData.password !== signupData.confirmPassword) {
-      return toast.error("Password and Confirm Password do not match");
+      return toast.error("Username must be 3-20 characters and can only contain letters, numbers, and underscores");
     }
     if (signupData.password.length < 4) {
-      return toast.error("Password must be at least 4 characters");
+      return toast.error("Password must be at least 4 characters long");
+    }
+    if (signupData.password !== signupData.confirmPassword) {
+      return toast.error("Passwords do not match");
     }
 
     let avatarBase64 = null;

@@ -6,9 +6,13 @@ import Home from './pages/home/Home.jsx'
 import Login from './pages/authentication/Login.jsx'
 import Signup from './pages/authentication/Signup.jsx'
 import Profile from './pages/profile/Profile.jsx'
+import UserProfile from './pages/profile/UserProfile.jsx'
 import { store } from './store/store.js'
 import { Provider } from 'react-redux'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { injectStore } from './components/utilities/axiosinstance.js'
+
+injectStore(store);
 
 const router = createBrowserRouter([
   {
@@ -23,6 +27,13 @@ const router = createBrowserRouter([
     element:
     (<ProtectedRoute>
       <Profile />
+    </ProtectedRoute>)
+  },
+  {
+    path: '/profile/:userId',
+    element:
+    (<ProtectedRoute>
+      <UserProfile />
     </ProtectedRoute>)
   },
   {

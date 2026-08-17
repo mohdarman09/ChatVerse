@@ -266,7 +266,7 @@ function UserSidebar({ onSelectUser, isMobile }) {
           </div>
 
           {/* Middle section - scrollable, fills remaining space */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
             {listContent}
           </div>
 
@@ -295,7 +295,7 @@ function UserSidebar({ onSelectUser, isMobile }) {
           {searchBar}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-custom min-h-0">
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-custom min-h-0 flex flex-col">
           {listContent}
         </div>
 

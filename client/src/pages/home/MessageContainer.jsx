@@ -9,11 +9,14 @@ import DateSeparator from '../../components/DateSeparator';
 import MessageSearch from '../../components/MessageSearch';
 import { IoArrowBack, IoSearch } from 'react-icons/io5';
 import { BsChatDots, BsTelephone } from 'react-icons/bs';
+import { useNavigate } from 'react-router-dom';
+import Avatar from '../../components/Avatar';
 import { useCall } from '../../context/CallContext';
 
 function MessageContainer({ onBack, isMobile }) {
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { selectedUser, userProfile } = useSelector(state => state.userReducer);
   const { messages, buttonLoading, hasMore, nextCursor, loadingOlder } = useSelector(state => state.messageReducer);
   const { onlineUsers, socket } = useSelector(state => state.socketReducer);
@@ -175,26 +178,32 @@ function MessageContainer({ onBack, isMobile }) {
             >
               <IoArrowBack className="w-6 h-6" />
             </button>
-            <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30">
-                <img
-                  src={selectedUser?.avatar}
-                  alt={selectedUser?.fullName}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src = `https://ui-avatars.com/api/?name=${selectedUser?.fullName}&background=6366F1&color=fff`;
-                  }}
-                />
+            <div
+              className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group"
+              onClick={() => selectedUser?._id && navigate(`/profile/${selectedUser._id}`)}
+              title="View profile"
+            >
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30 group-hover:ring-primary/60 transition-all">
+                  <Avatar
+                    src={selectedUser?.avatar}
+                    name={selectedUser?.fullName}
+                    seed={selectedUser?.username}
+                    className="w-full h-full"
+                  />
+                </div>
+                {isUserOnline && (
+                  <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
+                )}
               </div>
-              {isUserOnline && (
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-[15px] font-semibold text-white truncate">{selectedUser?.fullName}</h2>
-              <p className={`text-[12px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
-                {isUserOnline ? 'Online' : 'Offline'}
-              </p>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[15px] font-semibold text-white truncate group-hover:text-primary transition-colors">
+                  {selectedUser?.fullName}
+                </h2>
+                <p className={`text-[12px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
+                  {isUserOnline ? 'Online' : 'Offline'}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => startCall(selectedUser)}
@@ -344,26 +353,32 @@ function MessageContainer({ onBack, isMobile }) {
           >
             <IoArrowBack className="w-5 h-5" />
           </button>
-          <div className="relative flex-shrink-0">
-            <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30">
-              <img
-                src={selectedUser?.avatar}
-                alt={selectedUser?.fullName}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${selectedUser?.fullName}&background=6366F1&color=fff`;
-                }}
-              />
+          <div
+            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group"
+            onClick={() => selectedUser?._id && navigate(`/profile/${selectedUser._id}`)}
+            title="View profile"
+          >
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30 group-hover:ring-primary/60 transition-all">
+                <Avatar
+                  src={selectedUser?.avatar}
+                  name={selectedUser?.fullName}
+                  seed={selectedUser?.username}
+                  className="w-full h-full"
+                />
+              </div>
+              {isUserOnline && (
+                <div className="absolute -top-0.5 -right-0.5 status-dot status-dot-online" />
+              )}
             </div>
-            {isUserOnline && (
-              <div className="absolute -top-0.5 -right-0.5 status-dot status-dot-online" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-white truncate">{selectedUser?.fullName}</h2>
-            <p className={`text-[11px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
-              {isUserOnline ? 'Online' : 'Offline'}
-            </p>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">
+                {selectedUser?.fullName}
+              </h2>
+              <p className={`text-[11px] ${isUserOnline ? 'text-green-400' : 'text-gray-500'}`}>
+                {isUserOnline ? 'Online' : 'Offline'}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => startCall(selectedUser)}
