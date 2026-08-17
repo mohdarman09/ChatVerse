@@ -2,10 +2,10 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../../../components/utilities/axiosinstance";
 
-export const loginUserThunk = createAsyncThunk("user/login", async ({ usernameOrEmail, password }, { rejectWithValue }) => {
+export const loginUserThunk = createAsyncThunk("user/login", async ({ username, password }, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post('/user/login', {
-      usernameOrEmail,
+      username,
       password
     })
     return response.data;
@@ -16,12 +16,11 @@ export const loginUserThunk = createAsyncThunk("user/login", async ({ usernameOr
   }
 });
 
-export const registerUserThunk = createAsyncThunk("user/signup", async ({ fullName, username, email, password, gender, avatar }, { rejectWithValue }) => {
+export const registerUserThunk = createAsyncThunk("user/signup", async ({ fullName, username, password, gender, avatar }, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post('/user/register', {
       fullName,
       username,
-      email,
       password,
       gender,
       avatar,

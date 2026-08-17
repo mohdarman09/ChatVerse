@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { FaUser, FaEye, FaEyeSlash, FaVenusMars, FaCamera } from "react-icons/fa";
 import { IoKeySharp } from "react-icons/io5";
-import { RiMailLine } from "react-icons/ri";
 import { RiUserAddLine } from "react-icons/ri";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -21,7 +20,6 @@ function Signup() {
   const [signupData, setSignupData] = useState({
     fullName: "",
     username: "",
-    email: "",
     password: "",
     confirmPassword: "",
     gender: "male"
@@ -84,14 +82,9 @@ function Signup() {
   const handleSignup = async () => {
     const trimmedFullName = signupData.fullName.trim();
     const trimmedUsername = signupData.username.trim();
-    const trimmedEmail = signupData.email.trim();
 
-    if (!trimmedFullName || !trimmedUsername || !trimmedEmail || !signupData.password || !signupData.confirmPassword) {
+    if (!trimmedFullName || !trimmedUsername || !signupData.password || !signupData.confirmPassword) {
       return toast.error("Please fill in all fields");
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      return toast.error("Please enter a valid email address");
     }
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(trimmedUsername)) {
@@ -100,12 +93,8 @@ function Signup() {
     if (signupData.password !== signupData.confirmPassword) {
       return toast.error("Password and Confirm Password do not match");
     }
-    if (signupData.password.length < 8) {
-      return toast.error("Password must be at least 8 characters");
-    }
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(signupData.password)) {
-      return toast.error("Password must include uppercase, lowercase, number and special character");
+    if (signupData.password.length < 4) {
+      return toast.error("Password must be at least 4 characters");
     }
 
     let avatarBase64 = null;
@@ -120,7 +109,6 @@ function Signup() {
     const response = await dispatch(registerUserThunk({
       fullName: trimmedFullName,
       username: trimmedUsername,
-      email: trimmedEmail,
       password: signupData.password,
       gender: signupData.gender,
       avatar: avatarBase64,
@@ -210,22 +198,6 @@ function Signup() {
                   onKeyDown={handleKeyDown}
                   className="input-glass pl-10 pr-4 py-3 h-11"
                   placeholder="Choose a username"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm text-gray-400 font-medium ml-1">Email</label>
-              <div className="relative group">
-                <RiMailLine className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors duration-300" />
-                <input
-                  type="email"
-                  name="email"
-                  value={signupData.email}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  className="input-glass pl-10 pr-4 py-3 h-11"
-                  placeholder="Enter your email"
                 />
               </div>
             </div>

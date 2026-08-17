@@ -19,6 +19,20 @@ export const mergeCallLogs = (messages, calls) => {
   );
 };
 
+export const mergeMessagesDeduped = (base, additions) => {
+  const seen = new Set();
+  const merged = [...base, ...additions].filter((m) => {
+    if (!m?._id) return true;
+    const key = String(m._id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return merged.sort(
+    (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+  );
+};
+
 const conversationPreview = (message) => ({
   message: message?.messageType === 'image' ? '[Image]' : (message?.message || ''),
   senderId: message?.senderId,
@@ -60,14 +74,27 @@ export const messageSlice = createSlice({
   },
   reducers: {
     setNewMessage: (state, action) => {
-      const { message, selectedUserId } = action.payload;
-      updateConversationInPlace(state, message?.senderId, conversationPreview(message));
-      if (selectedUserId && String(message.senderId) === String(selectedUserId)) {
-        if (message?._id && !state.messages.some(m => String(m._id) === String(message._id))) {
-          state.messages = [...state.messages, message];
+      const { message, selectedUserId, currentUserId } = action.payload;
+      if (!message?._id) return;
+      const senderId = String(message.senderId || "");
+      const receiverId = String(message.recieverId || "");
+      const isOwn = Boolean(currentUserId) && senderId === String(currentUserId);
+      const belongsToOpenChat = Boolean(selectedUserId) &&
+        (senderId === String(selectedUserId) || receiverId === String(selectedUserId));
+
+      updateConversationInPlace(
+        state,
+        isOwn ? message.recieverId : message.senderId,
+        conversationPreview(message)
+      );
+
+      if (belongsToOpenChat) {
+        if (!state.messages.some(m => String(m._id) === String(message._id))) {
+          state.messages = mergeMessagesDeduped(state.messages, [message]);
         }
-      } else {
-        state.unreadCounts[message.senderId] = (state.unreadCounts[message.senderId] || 0) + 1;
+      } else if (!isOwn) {
+        const peerId = message.senderId;
+        state.unreadCounts[peerId] = (state.unreadCounts[peerId] || 0) + 1;
       }
     },
     addCallLog: (state, action) => {
@@ -152,6 +179,11 @@ export const messageSlice = createSlice({
     builder.addCase(getMessageThunk.pending, (state, action) => {
       state.buttonLoading = true;
       state.loadingOlder = false;
+      if (String(action.meta.arg.recieverId) !== String(state.activeChatPeerId)) {
+        state.messages = [];
+        state.hasMore = false;
+        state.nextCursor = null;
+      }
       state.activeChatPeerId = action.meta.arg.recieverId;
     });
     builder.addCase(getMessageThunk.fulfilled, (state, action) => {
@@ -160,7 +192,11 @@ export const messageSlice = createSlice({
         return;
       }
       const data = action.payload?.responseData;
-      state.messages = mergeCallLogs(data?.messages || [], data?.calls || []);
+      const loaded = mergeCallLogs(data?.messages || [], data?.calls || []);
+      // Merge with any messages that arrived via Socket.IO while the fetch was
+      // in flight. The API snapshot can predate a live message; without this
+      // merge the live message would vanish until the user refreshes.
+      state.messages = mergeMessagesDeduped(loaded, state.messages);
       state.hasMore = Boolean(data?.hasMore);
       state.nextCursor = data?.nextCursor || null;
       state.buttonLoading = false;
@@ -199,7 +235,16 @@ export const messageSlice = createSlice({
           unreadMap[c.otherUser._id] = c.unreadCount ?? 0;
         }
       });
-      state.unreadCounts = { ...state.unreadCounts, ...unreadMap };
+      // Keep the higher count: a Socket.IO message may have arrived after the
+      // server computed this snapshot; never let a stale snapshot drop a fresh
+      // unread badge (it self-corrects on the next fetch).
+      state.unreadCounts = { ...unreadMap, ...state.unreadCounts };
+      Object.entries(unreadMap).forEach(([peerId, count]) => {
+        state.unreadCounts[peerId] = Math.max(
+          Number(state.unreadCounts[peerId] || 0),
+          Number(count || 0)
+        );
+      });
     });
   },
 });

@@ -1,4 +1,10 @@
 export const errorMiddleware = (err, req, res, next) => {
+    if (err.code === 11000) {
+        const field = Object.keys(err.keyValue || {})[0];
+        err.statusCode = 400;
+        err.message = field === "username" ? "Username already exists" : `${field || "Value"} already exists`;
+    }
+
     err.statusCode = err.statusCode || 500;
     err.message = err.message || "Internal Server Error";
 

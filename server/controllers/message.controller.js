@@ -5,7 +5,7 @@ import Conversation from "../models/conversation.model.js";
 import CallLog from "../models/call.model.js";
 import { asyncHandler } from "../utilities/asyncHandler.utilitiy.js";
 import { errorHandler } from "../utilities/errorHandler.utility.js";
-import { getSocketId, io } from "../socket/socket.js";
+import { emitToUser } from "../socket/socket.js";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -84,10 +84,7 @@ export const sendMessage = asyncHandler(async (req, res, next) => {
         await conversation.save();
     }
 
-    const socketId = getSocketId(recieverId);
-    if (socketId) {
-        io.to(socketId).emit("newMessage", newMessage);
-    }
+    emitToUser(recieverId, "newMessage", newMessage);
 
     res.status(200)
         .json({
@@ -211,15 +208,9 @@ export const deleteMessage = asyncHandler(async (req, res, next) => {
     await msg.save();
 
     const deleteData = { messageId: String(msg._id), deleteForEveryone: !!deleteForEveryone, deletedBy: String(userId) };
-    const senderSocketId = getSocketId(String(userId));
-    if (senderSocketId) {
-        io.to(senderSocketId).emit("messageDeleted", deleteData);
-    }
+    emitToUser(String(userId), "messageDeleted", deleteData);
     if (deleteForEveryone) {
-        const receiverSocketId = getSocketId(String(msg.recieverId));
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("messageDeleted", deleteData);
-        }
+        emitToUser(String(msg.recieverId), "messageDeleted", deleteData);
     }
 
     res.status(200).json({ success: true, responseData: msg });
@@ -253,14 +244,8 @@ export const reactToMessage = asyncHandler(async (req, res, next) => {
     await msg.save();
 
     const reactionData = { messageId: String(msg._id), reactions: msg.reactions };
-    const senderSocketId = getSocketId(String(userId));
-    if (senderSocketId) {
-        io.to(senderSocketId).emit("messageReacted", reactionData);
-    }
-    const receiverSocketId = getSocketId(String(msg.recieverId));
-    if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageReacted", reactionData);
-    }
+    emitToUser(String(userId), "messageReacted", reactionData);
+    emitToUser(String(msg.recieverId), "messageReacted", reactionData);
 
     res.status(200).json({ success: true, responseData: msg });
 });

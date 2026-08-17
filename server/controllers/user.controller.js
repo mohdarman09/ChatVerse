@@ -6,8 +6,6 @@ import jwt from 'jsonwebtoken';
 import { generateInitialsAvatar } from "../utilities/avatar.utility.js";
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const signToken = (userId) => {
     return jwt.sign({ _id: userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
@@ -23,39 +21,27 @@ const setCookie = (res, token) => {
 };
 
 export const register = asyncHandler(async (req, res, next) => {
-    const { fullName, username, email, password, gender, avatar } = req.body;
+    const { fullName, username, password, gender, avatar } = req.body;
 
-    if (!fullName?.trim() || !username?.trim() || !email?.trim() || !password) {
+    if (!fullName?.trim() || !username?.trim() || !password) {
         return next(new errorHandler("All fields are required", 400));
     }
 
     const trimmedFullName = fullName.trim();
     const trimmedUsername = username.trim();
-    const trimmedEmail = email.trim().toLowerCase();
-
-    if (!emailRegex.test(trimmedEmail)) {
-        return next(new errorHandler("Invalid email format", 400));
-    }
 
     if (!usernameRegex.test(trimmedUsername)) {
         return next(new errorHandler("Username must be 3-20 characters with only letters, numbers and underscore", 400));
     }
 
-    if (!passwordRegex.test(password)) {
-        return next(new errorHandler("Password must be at least 8 characters with uppercase, lowercase, number and special character", 400));
+    if (typeof password !== "string" || password.length < 4) {
+        return next(new errorHandler("Password must be at least 4 characters", 400));
     }
 
-    const [existingUser, existingEmail] = await Promise.all([
-        User.findOne({ username: trimmedUsername }),
-        User.findOne({ email: trimmedEmail })
-    ]);
+    const existingUser = await User.findOne({ username: trimmedUsername });
 
     if (existingUser) {
         return next(new errorHandler("Username already exists", 400));
-    }
-
-    if (existingEmail) {
-        return next(new errorHandler("Email already in use", 400));
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -63,7 +49,6 @@ export const register = asyncHandler(async (req, res, next) => {
     const user = await User.create({
         fullName: trimmedFullName,
         username: trimmedUsername,
-        email: trimmedEmail,
         password: hashedPassword,
         gender: gender || 'male',
         avatar: avatar || generateInitialsAvatar(trimmedFullName, trimmedUsername),
@@ -83,17 +68,13 @@ export const register = asyncHandler(async (req, res, next) => {
 });
 
 export const login = asyncHandler(async (req, res, next) => {
-    const { usernameOrEmail, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!usernameOrEmail || !password) {
-        return next(new errorHandler("Please enter email/username and password", 400));
+    if (!username?.trim() || !password) {
+        return next(new errorHandler("Please enter username and password", 400));
     }
 
-    const isEmail = emailRegex.test(usernameOrEmail.trim().toLowerCase());
-
-    const user = isEmail
-        ? await User.findOne({ email: usernameOrEmail.trim().toLowerCase() })
-        : await User.findOne({ username: usernameOrEmail.trim() });
+    const user = await User.findOne({ username: username.trim() });
 
     if (!user) {
         return next(new errorHandler("Invalid credentials", 400));
@@ -213,8 +194,8 @@ export const changePassword = asyncHandler(async (req, res, next) => {
         return next(new errorHandler("All fields are required", 400));
     }
 
-    if (!passwordRegex.test(newPassword)) {
-        return next(new errorHandler("Password must be at least 8 characters with uppercase, lowercase, number and special character", 400));
+    if (typeof newPassword !== "string" || newPassword.length < 4) {
+        return next(new errorHandler("Password must be at least 4 characters", 400));
     }
 
     if (newPassword !== confirmPassword) {

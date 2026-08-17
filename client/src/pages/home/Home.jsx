@@ -60,65 +60,85 @@ function Home() {
   }, [isAuthenticated, userProfile]);
 
   useEffect(() => {
+    if (!isAuthenticated && socket) {
+      socket.disconnect();
+    }
+  }, [isAuthenticated, socket]);
+
+  useEffect(() => {
     if (!socket) return;
 
-    socket.on("onlineUsers", (onlineUsers) => {
+    const handleOnlineUsers = (onlineUsers) => {
       dispatch(setOnlineUsers(onlineUsers));
-    });
+    };
 
-    socket.on("newMessage", (newMessage) => {
-      dispatch(setNewMessage({ message: newMessage, selectedUserId: selectedUserRef.current?._id }));
-    });
+    const handleNewMessage = (newMessage) => {
+      dispatch(setNewMessage({
+        message: newMessage,
+        selectedUserId: selectedUserRef.current?._id,
+        currentUserId: userProfile?.profile?._id,
+      }));
+    };
 
-    socket.on("typing", ({ senderId, senderName }) => {
+    const handleTyping = ({ senderId, senderName }) => {
       dispatch(setTypingUsers({ userId: senderId, isTyping: true, name: senderName }));
-    });
+    };
 
-    socket.on("stopTyping", ({ senderId }) => {
+    const handleStopTyping = ({ senderId }) => {
       dispatch(setTypingUsers({ userId: senderId, isTyping: false }));
-    });
+    };
 
-    socket.on("messageSeen", ({ messageIds, userId }) => {
+    const handleMessageSeen = ({ messageIds, userId }) => {
       dispatch(setMessagesSeen({ messageIds, userId }));
-    });
+    };
 
-    socket.on("messageEdited", (updatedMessage) => {
+    const handleMessageEdited = (updatedMessage) => {
       dispatch(editMessageInStore(updatedMessage));
-    });
+    };
 
-    socket.on("messageDeleted", ({ messageId, deleteForEveryone }) => {
+    const handleMessageDeleted = ({ messageId, deleteForEveryone }) => {
       dispatch(deleteMessageFromStore({ messageId, deleteForEveryone }));
-    });
+    };
 
-    socket.on("messageReacted", ({ messageId, reactions }) => {
+    const handleMessageReacted = ({ messageId, reactions }) => {
       dispatch(updateMessageReactions({ messageId, reactions }));
-    });
+    };
 
-    socket.on("callHistory", ({ log, peerId }) => {
+    const handleCallHistory = ({ log, peerId }) => {
       const current = selectedUserRef.current;
       if (current?._id && String(peerId) === String(current._id)) {
         dispatch(addCallLog({ log, peerId }));
       }
-    });
+    };
 
-    socket.on("userLastSeen", ({ userId, lastSeen }) => {
+    const handleUserLastSeen = ({ userId, lastSeen }) => {
       dispatch(setUserLastSeen({ userId, lastSeen }));
-    });
+    };
+
+    socket.on("onlineUsers", handleOnlineUsers);
+    socket.on("newMessage", handleNewMessage);
+    socket.on("typing", handleTyping);
+    socket.on("stopTyping", handleStopTyping);
+    socket.on("messageSeen", handleMessageSeen);
+    socket.on("messageEdited", handleMessageEdited);
+    socket.on("messageDeleted", handleMessageDeleted);
+    socket.on("messageReacted", handleMessageReacted);
+    socket.on("callHistory", handleCallHistory);
+    socket.on("userLastSeen", handleUserLastSeen);
 
     return () => {
-      socket.off("onlineUsers");
-      socket.off("newMessage");
-      socket.off("typing");
-      socket.off("stopTyping");
-      socket.off("messageSeen");
-      socket.off("messageEdited");
-      socket.off("messageDeleted");
-      socket.off("messageReacted");
-      socket.off("callHistory");
-      socket.off("userLastSeen");
-      socket.disconnect();
+      socket.off("onlineUsers", handleOnlineUsers);
+      socket.off("newMessage", handleNewMessage);
+      socket.off("typing", handleTyping);
+      socket.off("stopTyping", handleStopTyping);
+      socket.off("messageSeen", handleMessageSeen);
+      socket.off("messageEdited", handleMessageEdited);
+      socket.off("messageDeleted", handleMessageDeleted);
+      socket.off("messageReacted", handleMessageReacted);
+      socket.off("callHistory", handleCallHistory);
+      socket.off("userLastSeen", handleUserLastSeen);
     }
-  }, [socket]);
+  }, [socket, userProfile]);
 
   const totalUnread = Object.values(unreadCounts || {}).reduce((a, b) => a + b, 0);
 

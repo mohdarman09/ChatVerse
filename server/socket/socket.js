@@ -12,14 +12,46 @@ import CallLog from "../models/call.model.js";
 const app = express();
 const server = http.createServer(app);
 
+// Single source of truth for allowed CORS origins.
+// Socket.IO and Express CORS both use this list.
+const defaultOrigins = [
+  "http://localhost:5173",
+  "https://chat-verse-kappa.vercel.app",
+];
+const envOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+export const allowedOrigins = [...new Set([...envOrigins, ...defaultOrigins])];
+
 const io = new Server(server, {
   cors: {
-    origin: (process.env.CLIENT_URL || "").split(",").map((origin) => origin.trim()),
+    origin: allowedOrigins,
     credentials: true,
   },
 });
 
-const userSocketMap = {};
+// --- USER -> SOCKET(S) MAPPING ---
+// Each user can be connected from multiple tabs/devices.
+// userSockets: Map<userId, Set<socketId>>
+const userSockets = new Map();
+
+const getSocketIds = (userId) => {
+  if (!userId) return [];
+  return [...(userSockets.get(String(userId)) || [])];
+};
+
+// Emit to EVERY socket connected for a user (all tabs/devices).
+export const emitToUser = (userId, event, data) => {
+  if (!userId) return;
+  for (const socketId of getSocketIds(userId)) {
+    io.to(socketId).emit(event, data);
+  }
+};
+
+// Backward-compatible helper: first socket id for a user (or undefined).
+export const getSocketId = (userId) => getSocketIds(userId)[0];
 
 // --- CALL STATE (signaling only; audio flows peer-to-peer via WebRTC) ---
 const activeCalls = new Map(); // callerId -> { callerId, calleeId, ringAt, answerAt }
@@ -73,18 +105,8 @@ const saveCallLog = async (call, status) => {
 
 const emitCallHistory = (log, callerId, calleeId) => {
   if (!log) return;
-  const callerSocketId = getSocketId(callerId);
-  if (callerSocketId) {
-    io.to(callerSocketId).emit("callHistory", { log, peerId: calleeId });
-  }
-  const calleeSocketId = getSocketId(calleeId);
-  if (calleeSocketId) {
-    io.to(calleeSocketId).emit("callHistory", { log, peerId: callerId });
-  }
-};
-
-export const getSocketId = (userId) => {
-  return userSocketMap[userId];
+  emitToUser(callerId, "callHistory", { log, peerId: calleeId });
+  emitToUser(calleeId, "callHistory", { log, peerId: callerId });
 };
 
 io.on("connection", (socket) => {
@@ -92,24 +114,21 @@ io.on("connection", (socket) => {
   const userID = socket.handshake.query.userId;
 
   if (userID) {
-    userSocketMap[userID] = socket.id;
+    if (!userSockets.has(String(userID))) {
+      userSockets.set(String(userID), new Set());
+    }
+    userSockets.get(String(userID)).add(socket.id);
   }
 
-  io.emit("onlineUsers", Object.keys(userSocketMap));
+  io.emit("onlineUsers", [...userSockets.keys()]);
 
   // --- TYPING ---
   socket.on("typing", ({ recieverId, senderName }) => {
-    const receiverSocketId = getSocketId(recieverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("typing", { senderId: userID, senderName });
-    }
+    emitToUser(recieverId, "typing", { senderId: userID, senderName });
   });
 
   socket.on("stopTyping", ({ recieverId }) => {
-    const receiverSocketId = getSocketId(recieverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("stopTyping", { senderId: userID });
-    }
+    emitToUser(recieverId, "stopTyping", { senderId: userID });
   });
 
   // --- MESSAGE SEEN ---
@@ -120,10 +139,7 @@ io.on("connection", (socket) => {
         { $addToSet: { seenBy: { userId: userID, seenAt: new Date() } } }
       );
 
-      const senderSocketId = getSocketId(senderId);
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("messageSeen", { messageIds, userId: userID });
-      }
+      emitToUser(senderId, "messageSeen", { messageIds, userId: userID });
     } catch (err) {
       console.error("Error marking messages as seen:", err);
     }
@@ -138,15 +154,8 @@ io.on("connection", (socket) => {
         { new: true }
       );
 
-      const receiverSocketId = getSocketId(recieverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageEdited", updatedMessage);
-      }
-
-      const senderSocketId = getSocketId(userID);
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("messageEdited", updatedMessage);
-      }
+      emitToUser(recieverId, "messageEdited", updatedMessage);
+      emitToUser(userID, "messageEdited", updatedMessage);
     } catch (err) {
       console.error("Error editing message:", err);
     }
@@ -161,15 +170,9 @@ io.on("connection", (socket) => {
 
       await Message.findByIdAndUpdate(messageId, update);
 
-      const receiverSocketId = getSocketId(recieverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageDeleted", { messageId, deleteForEveryone, deletedBy: userID });
-      }
-
-      const senderSocketId = getSocketId(userID);
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("messageDeleted", { messageId, deleteForEveryone, deletedBy: userID });
-      }
+      const data = { messageId, deleteForEveryone, deletedBy: userID };
+      emitToUser(recieverId, "messageDeleted", data);
+      emitToUser(userID, "messageDeleted", data);
     } catch (err) {
       console.error("Error deleting message:", err);
     }
@@ -201,17 +204,9 @@ io.on("connection", (socket) => {
 
       await message.save();
 
-      const receiverSocketId = getSocketId(recieverId);
       const data = { messageId, reactions: message.reactions };
-
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageReacted", data);
-      }
-
-      const senderSocketId = getSocketId(userID);
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("messageReacted", data);
-      }
+      emitToUser(recieverId, "messageReacted", data);
+      emitToUser(userID, "messageReacted", data);
     } catch (err) {
       console.error("Error reacting to message:", err);
     }
@@ -324,20 +319,28 @@ io.on("connection", (socket) => {
     }
     busyUsers.delete(userID);
 
-    if (userID && userSocketMap[userID] === socket.id) {
-      delete userSocketMap[userID];
+    // Remove ONLY this socket from the user's socket set.
+    // Other tabs/devices keep their mapping intact.
+    if (userID && userSockets.has(String(userID))) {
+      const sockets = userSockets.get(String(userID));
+      sockets.delete(socket.id);
 
-      try {
-        await User.findByIdAndUpdate(userID, { lastSeen: new Date() });
+      // Last socket for this user disconnected -> user is now offline.
+      if (sockets.size === 0) {
+        userSockets.delete(String(userID));
 
-        const user = await User.findById(userID).select("lastSeen");
-        io.emit("userLastSeen", { userId: userID, lastSeen: user?.lastSeen });
-      } catch (err) {
-        console.error("Error updating lastSeen:", err);
+        try {
+          await User.findByIdAndUpdate(userID, { lastSeen: new Date() });
+
+          const user = await User.findById(userID).select("lastSeen");
+          io.emit("userLastSeen", { userId: userID, lastSeen: user?.lastSeen });
+        } catch (err) {
+          console.error("Error updating lastSeen:", err);
+        }
       }
     }
 
-    io.emit("onlineUsers", Object.keys(userSocketMap));
+    io.emit("onlineUsers", [...userSockets.keys()]);
   });
 });
 

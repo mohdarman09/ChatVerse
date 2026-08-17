@@ -1,4 +1,4 @@
-import {app, server} from './socket/socket.js';
+import {app, server, allowedOrigins} from './socket/socket.js';
 import express from 'express';
 import { connectDB } from './db/connection1.db.js';
 import cookieParser from 'cookie-parser';
@@ -6,12 +6,8 @@ import cors from 'cors';
 
 connectDB();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://chat-verse-kappa.vercel.app"
-];
-
-// CORS middleware handles both standard and preflight (OPTIONS) requests
+// CORS middleware handles both standard and preflight (OPTIONS) requests.
+// allowedOrigins is shared with the Socket.IO server (see socket/socket.js).
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
